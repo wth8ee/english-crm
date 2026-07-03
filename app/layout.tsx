@@ -48,7 +48,7 @@ export default async function RootLayout({
         inter.variable,
       )}
     >
-      <body className="min-h-full overflow-hidden max-h-screen flex flex-col bg-slate-200 dark:bg-black">
+      <body className="min-h-full overflow-x-hidden max-h-screen flex flex-col bg-slate-200 dark:bg-black">
         <TooltipProvider delayDuration={200}>
           <ThemeProvider
             attribute="class"

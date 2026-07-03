@@ -17,7 +17,7 @@ export default function MarketingPage() {
   const { session } = useAuth();
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-6 py-12 md:py-24 space-y-20">
+    <div className="w-full min-h-screen overflow-x-hidden overflow-y-auto bg-background px-4 sm:px-6 py-8 md:py-24 space-y-12 md:space-y-20">
       <section className="text-center max-w-2xl mx-auto space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border/40 bg-sidebar text-[11px] font-medium text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5 text-foreground" />

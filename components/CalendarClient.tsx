@@ -174,7 +174,7 @@ export function CalendarClient({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-center">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
           <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-sidebar shadow-sm">
             <Button
               variant="ghost"
@@ -217,180 +217,242 @@ export function CalendarClient({
       </div>
 
       <div className="w-full">
-        <Card className="w-full border-border/40 bg-sidebar shadow-sm overflow-hidden">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-8 border-b border-border/40 bg-muted/40 text-center min-h-12 items-center shrink-0 py-1">
-              <div className="text-[10px] font-semibold text-muted-foreground">
-                Время
-              </div>
-              {weekDates.map((date, idx) => {
-                const isToday = todayFormatted === date;
+        <div className="w-full overflow-x-auto pb-4 touch-pan-x scrollbar-thin">
+          <Card className="min-w-350 border-border/40 bg-sidebar shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid touch-pan-x grid-cols-8 border-b border-border/40 bg-muted/40 text-center min-h-12 items-center shrink-0 py-1">
+                <div className="text-[10px] font-semibold text-muted-foreground">
+                  Время
+                </div>
+                {weekDates.map((date, idx) => {
+                  const isToday = todayFormatted === date;
 
-                return (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "flex flex-col justify-center items-center h-9 rounded-lg mx-0.5 transition-colors",
-                      isToday &&
-                        "bg-muted border border-foreground/25 border-dashed shadow-[0_1px_3px_rgba(0,0,0,0.02)]",
-                    )}
-                  >
-                    <p
+                  return (
+                    <div
+                      key={idx}
                       className={cn(
-                        "text-xs font-semibold leading-none",
-                        isToday
-                          ? "text-foreground font-bold"
-                          : "text-foreground/80",
+                        "flex flex-col justify-center items-center h-9 rounded-lg mx-0.5 transition-colors",
+                        isToday &&
+                          "bg-muted border border-foreground/25 border-dashed shadow-[0_1px_3px_rgba(0,0,0,0.02)]",
                       )}
                     >
-                      {daysOfWeek[idx].name}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-[9px] mt-0.5 font-normal leading-none",
-                        isToday
-                          ? "text-foreground/60 font-medium"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {date
-                        .slice(date.length - 5, date.length)
-                        .split("-")
-                        .join(".")}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="divide-y divide-border/30">
-              {timeSlots.map((slot) => (
-                <div
-                  key={slot}
-                  className="grid grid-cols-8 h-12 divide-x divide-border/20"
-                >
-                  <div className="text-[10px] font-medium text-muted-foreground/80 flex items-center justify-center bg-muted/10">
-                    {slot}
-                  </div>
-
-                  {weekDates.map((date, dayIdx) => {
-                    const isToday = todayFormatted === date;
-                    const currentHour = parseInt(slot.split(":")[0]);
-                    const lesson = lessons.find((l) => {
-                      const lessonHour = parseInt(l.time.split(":")[0]);
-                      return (
-                        l.dayIndex === dayIdx && lessonHour === currentHour
-                      );
-                    });
-                    return (
-                      <div
-                        key={dayIdx}
+                      <p
                         className={cn(
-                          "p-0.5 relative group cursor-pointer transition-colors",
+                          "text-xs font-semibold leading-none",
                           isToday
-                            ? "bg-muted/40 hover:bg-muted border-dashed border-foreground/25 border-l border-r"
-                            : "bg-background/20 hover:bg-foreground/1",
+                            ? "text-foreground font-bold"
+                            : "text-foreground/80",
                         )}
-                        onClick={() => !lesson && handleCellClick(slot, date)}
                       >
-                        {lesson ? (
-                          <DropdownMenu key={dayIdx}>
-                            <DropdownMenuTrigger asChild>
-                              <div
-                                className={cn(
-                                  "absolute inset-0.5 px-2 rounded border flex items-center justify-between overflow-hidden transition-all shadow-[0_1px_4px_-1px_rgba(0,0,0,0.02)] cursor-pointer select-none",
+                        {daysOfWeek[idx].name}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-[9px] mt-0.5 font-normal leading-none",
+                          isToday
+                            ? "text-foreground/60 font-medium"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {date
+                          .slice(date.length - 5, date.length)
+                          .split("-")
+                          .join(".")}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="divide-y divide-border/30">
+                {timeSlots.map((slot) => (
+                  <div
+                    key={slot}
+                    className="grid grid-cols-8 h-12 divide-x divide-border/20"
+                  >
+                    <div className="text-[10px] font-medium text-muted-foreground/80 flex items-center justify-center bg-muted/10">
+                      {slot}
+                    </div>
 
-                                  lesson.status === "completed" &&
+                    {weekDates.map((date, dayIdx) => {
+                      const isToday = todayFormatted === date;
+                      const currentHour = parseInt(slot.split(":")[0]);
+                      const lesson = lessons.find((l) => {
+                        const lessonHour = parseInt(l.time.split(":")[0]);
+                        return (
+                          l.dayIndex === dayIdx && lessonHour === currentHour
+                        );
+                      });
+                      return (
+                        <div
+                          key={dayIdx}
+                          className={cn(
+                            "p-0.5 relative group cursor-pointer transition-colors",
+                            isToday
+                              ? "bg-muted/40 hover:bg-muted border-dashed border-foreground/25 border-l border-r"
+                              : "bg-background/20 hover:bg-foreground/1",
+                          )}
+                          onClick={() => !lesson && handleCellClick(slot, date)}
+                        >
+                          {lesson ? (
+                            <DropdownMenu key={dayIdx}>
+                              <DropdownMenuTrigger asChild>
+                                <div
+                                  className={cn(
+                                    "absolute inset-0.5 px-2 rounded border flex items-center justify-between overflow-hidden transition-all shadow-[0_1px_4px_-1px_rgba(0,0,0,0.02)] cursor-pointer select-none",
+
                                     lesson.status === "completed" &&
-                                    "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-medium",
-                                  lesson.status === "confirmed" &&
-                                    "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold",
-                                  lesson.status === "cancelled" &&
-                                    "bg-destructive/10 border-destructive/20 text-destructive opacity-60 [&_p]:line-through",
+                                      lesson.status === "completed" &&
+                                      "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-medium",
+                                    lesson.status === "confirmed" &&
+                                      "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold",
+                                    lesson.status === "cancelled" &&
+                                      "bg-destructive/10 border-destructive/20 text-destructive opacity-60 [&_p]:line-through",
 
-                                  lesson.status === "scheduled" &&
-                                    "bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400",
-                                  lesson.status === "rescheduled" &&
-                                    "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400",
-                                )}
-                              >
-                                <div className="flex items-center gap-2 w-full min-w-0">
-                                  <span className="text-[10px] font-bold tracking-tight shrink-0">
-                                    {lesson.time}
-                                  </span>
+                                    lesson.status === "scheduled" &&
+                                      "bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400",
+                                    lesson.status === "rescheduled" &&
+                                      "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400",
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2 w-full min-w-0">
+                                    <span className="text-[10px] font-bold tracking-tight shrink-0">
+                                      {lesson.time}
+                                    </span>
 
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    {/* <p className="text-[10px] font-semibold truncate">
-                                      {lesson.student.split(" ").length > 1
-                                        ? `${lesson.student.split(" ")[0]} ${lesson.student.split(" ")[1][0]}.`
-                                        : lesson.student}
-                                    </p> */}
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <p className="text-[10px] font-semibold truncate">
-                                          {shorten(lesson.student)}
-                                        </p>
-                                      </TooltipTrigger>
-                                      <TooltipContent
-                                        side="top"
-                                        className="bg-popover text-popover-foreground border border-border/40 text-[10px] font-medium px-2 py-1 rounded-md shadow-md"
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <p className="text-[10px] font-semibold truncate">
+                                            {shorten(lesson.student)}
+                                          </p>
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                          side="top"
+                                          className="bg-popover text-popover-foreground border border-border/40 text-[10px] font-medium px-2 py-1 rounded-md shadow-md"
+                                        >
+                                          {lesson.student}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+
+                                    <div className="flex gap-1">
+                                      <span
+                                        className={cn(
+                                          "text-[8px] font-bold uppercase tracking-wider border px-1 py-0.5 rounded shrink-0",
+                                          lesson.status === "completed" &&
+                                            "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/30",
+                                          lesson.status === "scheduled" &&
+                                            "bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/30",
+                                          lesson.status === "confirmed" &&
+                                            "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30",
+                                        )}
                                       >
-                                        {lesson.student}
-                                      </TooltipContent>
-                                    </Tooltip>
+                                        {lesson.duration / 60} ч.
+                                      </span>
 
-                                    {/* {lesson.status === "completed" && (
-                                      <Clock className="h-3 w-3 text-sky-600 shrink-0" />
-                                    )}
-
-                                    {lesson.status === "confirmed" && (
-                                      <BanknoteCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                    )}
-
-                                    {lesson.status === "scheduled" && (
-                                      <Hourglass className="h-3 aspect-square text-violet-600 dark:text-violet-400 shrink-0" />
-                                    )} */}
-                                  </div>
-
-                                  <div className="flex gap-1">
-                                    <span
-                                      className={cn(
-                                        "text-[8px] font-bold uppercase tracking-wider border px-1 py-0.5 rounded shrink-0",
-                                        lesson.status === "completed" &&
-                                          "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/30",
-                                        lesson.status === "scheduled" &&
-                                          "bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/30",
-                                        lesson.status === "confirmed" &&
-                                          "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30",
-                                      )}
-                                    >
-                                      {lesson.duration / 60} ч.
-                                    </span>
-
-                                    <span
-                                      className={cn(
-                                        "text-[8px] font-bold uppercase tracking-wider border px-1 py-0.5 rounded shrink-0",
-                                        lesson.status === "completed" &&
-                                          "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/30",
-                                        lesson.status === "scheduled" &&
-                                          "bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/30",
-                                        lesson.status === "confirmed" &&
-                                          "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30",
-                                      )}
-                                    >
-                                      {lesson.level}
-                                    </span>
+                                      <span
+                                        className={cn(
+                                          "text-[8px] font-bold uppercase tracking-wider border px-1 py-0.5 rounded shrink-0",
+                                          lesson.status === "completed" &&
+                                            "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/30",
+                                          lesson.status === "scheduled" &&
+                                            "bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/30",
+                                          lesson.status === "confirmed" &&
+                                            "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30",
+                                        )}
+                                      >
+                                        {lesson.level}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="center"
-                              sideOffset={6}
-                              className="bg-sidebar/95 backdrop-blur-md border border-border/50 text-xs min-w-46.25 p-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] animate-in fade-in-50 zoom-in-95"
-                            >
-                              {lesson.status !== "completed" &&
-                                lesson.status !== "confirmed" &&
-                                lesson.status !== "cancelled" && (
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="center"
+                                sideOffset={6}
+                                className="bg-sidebar/95 backdrop-blur-md border border-border/50 text-xs min-w-46.25 p-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] animate-in fade-in-50 zoom-in-95"
+                              >
+                                {lesson.status !== "completed" &&
+                                  lesson.status !== "confirmed" &&
+                                  lesson.status !== "cancelled" && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          changeLessonStatus(
+                                            lesson.id,
+                                            "completed",
+                                          )
+                                        }
+                                        className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                                      >
+                                        <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                                        <span className="font-medium tracking-tight">
+                                          Завершить урок
+                                        </span>
+                                      </DropdownMenuItem>
+
+                                      <DropdownMenuItem
+                                        disabled
+                                        className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                                      >
+                                        <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
+                                        <span className="font-medium tracking-tight">
+                                          Перенести
+                                        </span>
+                                      </DropdownMenuItem>
+
+                                      <div className="h-px bg-border/40 my-1.5 mx-1" />
+
+                                      <DropdownMenuItem
+                                        onClick={() => deleteLesson(lesson.id)}
+                                        className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-destructive/90 transition-colors select-none outline-none focus:bg-destructive/10 focus:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
+                                      >
+                                        <span className="h-2 w-2 rounded-full bg-destructive shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                                        <span className="font-medium tracking-tight">
+                                          Отменить урок
+                                        </span>
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+
+                                {lesson.status === "completed" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        changeLessonStatus(
+                                          lesson.id,
+                                          "confirmed",
+                                        )
+                                      }
+                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                                    >
+                                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                                      <span className="font-medium tracking-tight">
+                                        Отметить как оплачен
+                                      </span>
+                                    </DropdownMenuItem>
+
+                                    <div className="h-px bg-border/40 my-1.5 mx-1" />
+
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        changeLessonStatus(
+                                          lesson.id,
+                                          "scheduled",
+                                        )
+                                      }
+                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                                    >
+                                      <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(14,165,233,0.4)]" />
+                                      <span className="font-medium tracking-tight">
+                                        Вернуть в ожидание
+                                      </span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {(lesson.status === "confirmed" ||
+                                  lesson.status === "cancelled") && (
                                   <>
                                     <DropdownMenuItem
                                       onClick={() =>
@@ -403,188 +465,40 @@ export function CalendarClient({
                                     >
                                       <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
                                       <span className="font-medium tracking-tight">
-                                        Завершить урок
+                                        Отметить как не оплачен
                                       </span>
                                     </DropdownMenuItem>
 
                                     <DropdownMenuItem
-                                      disabled
+                                      onClick={() =>
+                                        changeLessonStatus(
+                                          lesson.id,
+                                          "scheduled",
+                                        )
+                                      }
                                       className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
                                     >
-                                      <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
+                                      <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(14,165,233,0.4)]" />
                                       <span className="font-medium tracking-tight">
-                                        Перенести
-                                      </span>
-                                    </DropdownMenuItem>
-
-                                    <div className="h-px bg-border/40 my-1.5 mx-1" />
-
-                                    <DropdownMenuItem
-                                      onClick={() => deleteLesson(lesson.id)}
-                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-destructive/90 transition-colors select-none outline-none focus:bg-destructive/10 focus:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                                    >
-                                      <span className="h-2 w-2 rounded-full bg-destructive shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
-                                      <span className="font-medium tracking-tight">
-                                        Отменить урок
+                                        Вернуть в ожидание
                                       </span>
                                     </DropdownMenuItem>
                                   </>
                                 )}
-
-                              {lesson.status === "completed" && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      changeLessonStatus(lesson.id, "confirmed")
-                                    }
-                                    className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                  >
-                                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                                    <span className="font-medium tracking-tight">
-                                      Отметить как оплачен
-                                    </span>
-                                  </DropdownMenuItem>
-
-                                  <div className="h-px bg-border/40 my-1.5 mx-1" />
-
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      changeLessonStatus(lesson.id, "scheduled")
-                                    }
-                                    className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                  >
-                                    <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(14,165,233,0.4)]" />
-                                    <span className="font-medium tracking-tight">
-                                      Вернуть в ожидание
-                                    </span>
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-
-                              {(lesson.status === "confirmed" ||
-                                lesson.status === "cancelled") && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      changeLessonStatus(lesson.id, "completed")
-                                    }
-                                    className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                  >
-                                    <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
-                                    <span className="font-medium tracking-tight">
-                                      Отметить как не оплачен
-                                    </span>
-                                  </DropdownMenuItem>
-
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      changeLessonStatus(lesson.id, "scheduled")
-                                    }
-                                    className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                  >
-                                    <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(14,165,233,0.4)]" />
-                                    <span className="font-medium tracking-tight">
-                                      Вернуть в ожидание
-                                    </span>
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>{" "}
-                          </DropdownMenu>
-                        ) : (
-                          <div className="h-full w-full" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* <div className="lg:col-span-3 space-y-4">
-          <Card className="border-border/40 bg-sidebar shadow-sm">
-            <CardHeader className="p-4 pb-2 space-y-0.5">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Итоги недели
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 space-y-3">
-              <div className="flex items-center justify-between border-b border-border/20 pb-2">
-                <div className="flex items-center gap-2 text-xs text-foreground">
-                  <Clock className="h-3.5 w-3.5 text-sky-500" />
-                  <span>Запланировано</span>
-                </div>
-                <span className="text-xs font-bold">{plannedHours} ч</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-border/20 pb-2">
-                <div className="flex items-center gap-2 text-xs text-foreground">
-                  <UserCheck className="h-3.5 w-3.5 text-green-500" />
-                  <span>Отработано</span>
-                </div>
-                <span className="text-xs font-bold">{finishedHours} ч</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/40 bg-sidebar shadow-sm">
-            <CardHeader className="p-4 pb-2 space-y-0.5">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Не записаны
-              </CardTitle>
-              <CardDescription className="text-[10px]">
-                Без уроков на этой неделе
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="space-y-2">
-                {unbookedStudents.length > 0 ? (
-                  unbookedStudents.map((student) => {
-                    const levelKey = student.level as LanguageLevelKey;
-                    const levelData = LANGUAGE_LEVELS[levelKey] || {
-                      label: student.level,
-                      badgeClass:
-                        "bg-muted text-muted-foreground border-border/40",
-                    };
-
-                    return (
-                      <div
-                        key={student.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-background/50 shadow-[0_1px_3px_rgba(0,0,0,0.01)]"
-                      >
-                        <span className="text-xs font-semibold text-foreground/90">
-                          {student.name}
-                        </span>
-
-                        <span
-                          className={cn(
-                            levelData.badgeClass,
-                            "text-[9px] px-2 py-0.5 rounded font-medium border uppercase tracking-wider whitespace-nowrap",
+                              </DropdownMenuContent>{" "}
+                            </DropdownMenu>
+                          ) : (
+                            <div className="h-full w-full" />
                           )}
-                        >
-                          {student.level}
-                          {" - "}
-                          {levelData.label.split(" ")[2] || student.level}
-                        </span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-6 px-4 text-center rounded-xl border border-dashed border-foreground/25 bg-muted/20">
-                    <p className="text-[14px] font-semibold text-foreground/75">
-                      ✨ Все ученики записаны
-                    </p>
-                    <p className="text-[11px] text-foreground/50 mt-0.5 max-w-47.5 leading-tight">
-                      У всех активных студентов в расписании есть хотя бы один
-                      урок
-                    </p>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
-        </div> */}
+        </div>
       </div>
 
       <ScheduleDialog
