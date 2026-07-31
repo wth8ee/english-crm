@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal, Trash2, Pencil, Archive, ArchiveRestore } from "lucide-react";
 import { LANGUAGE_LEVELS, LanguageLevelKey } from "@/constants/languages";
 import { cn } from "@/lib/utils";
 import {
@@ -20,12 +20,16 @@ import {
 
 interface StudentsListProps {
   students: Student[];
+  onEdit: (student: Student) => void;
+  onToggleStatus: (student: Student) => void;
   setStudentToDelete: (id: string) => void;
   setIsDeleteOpen: (isDeleteOpen: boolean) => void;
 }
 
 export function StudentsList({
   students,
+  onEdit,
+  onToggleStatus,
   setStudentToDelete,
   setIsDeleteOpen,
 }: StudentsListProps) {
@@ -46,13 +50,23 @@ export function StudentsList({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {students.map((student, idx) => {
+        {students.length === 0 && (
+          <TableRow className="border-b border-border/40 bg-background/30">
+            <TableCell
+              colSpan={6}
+              className="py-10 text-center text-xs text-muted-foreground"
+            >
+              В этой вкладке пока нет учеников
+            </TableCell>
+          </TableRow>
+        )}
+        {students.map((student) => {
           const levelKey = student.level as LanguageLevelKey;
           const levelData = LANGUAGE_LEVELS[levelKey];
 
           return (
             <TableRow
-              key={idx}
+              key={student.id}
               className={cn(
                 "border-b border-border/40 bg-background/30 hover:bg-background/60 transition-colors",
                 student.status === "ARCHIVED" && "opacity-60",
@@ -104,6 +118,34 @@ export function StudentsList({
                     sideOffset={4}
                     className="bg-sidebar/95 backdrop-blur-md border border-border/50 text-xs min-w-37.5 p-1 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] animate-in fade-in-50 zoom-in-95"
                   >
+                    <DropdownMenuItem
+                      onClick={() => onEdit(student)}
+                      className="flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 select-none outline-none transition-colors focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                    >
+                      <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="font-medium tracking-tight text-nowrap">
+                        Редактировать
+                      </span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => onToggleStatus(student)}
+                      className="flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 select-none outline-none transition-colors focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                    >
+                      {student.status === "ARCHIVED" ? (
+                        <ArchiveRestore className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <Archive className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="font-medium tracking-tight text-nowrap">
+                        {student.status === "ARCHIVED"
+                          ? "Вернуть из архива"
+                          : "В архив"}
+                      </span>
+                    </DropdownMenuItem>
+
+                    <div className="h-px bg-border/40 my-1 mx-1" />
+
                     <DropdownMenuItem
                       onClick={() => {
                         setStudentToDelete(student.id);

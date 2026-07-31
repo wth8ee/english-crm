@@ -13,7 +13,9 @@ export default async function Calendar() {
     redirect("/sign-in");
   }
 
-  const students = await getUserStudents();
+  const allStudents = await getUserStudents();
+  // Архивные ученики недоступны при планировании уроков
+  const students = allStudents.filter((s) => s.status !== "ARCHIVED");
   const unbookedStudents = await getUnbookedStudents();
 
   return (

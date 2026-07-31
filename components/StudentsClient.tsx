@@ -22,11 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { createStudent, deleteStudentById } from "@/lib/actions";
+import {
+  createStudent,
+  deleteStudentById,
+  updateStudent,
+  updateStudentStatus,
+} from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { Student } from "@/generated/prisma/client";
 import { StudentsList } from "./StudentsList";
-import { pluralize } from "@/lib/utils";
+import { pluralize, cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,12 +51,14 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
   const router = useRouter();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [level, setLevel] = useState("b1");
+  const [level, setLevel] = useState("B1");
   const [hourlyRate, setHourlyRate] = useState("1500");
 
   const [students, setStudents] = useState(initialStudents);
@@ -59,34 +66,80 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"active" | "archive">("active");
+
+  const activeStudents = students.filter((s) => s.status !== "ARCHIVED");
+  const archivedStudents = students.filter((s) => s.status === "ARCHIVED");
+  const visibleStudents =
+    activeTab === "active" ? activeStudents : archivedStudents;
+
   const countStudentsByLevel = (level: string) => {
-    return students.filter((student) => student.level === level).length;
+    return activeStudents.filter((student) => student.level === level).length;
   };
   const a1a2 = countStudentsByLevel("A1") + countStudentsByLevel("A2");
   const b1b2 = countStudentsByLevel("B1") + countStudentsByLevel("B2");
   const c1c2 = countStudentsByLevel("C1") + countStudentsByLevel("C2");
+
+  const handleDialogChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      setError(null);
+      setDialogMode("create");
+      setEditingStudentId(null);
+      setName("");
+      setEmail("");
+      setLevel("B1");
+      setHourlyRate("1500");
+    }
+  };
+
+  const openEditDialog = (student: Student) => {
+    setDialogMode("edit");
+    setEditingStudentId(student.id);
+    setName(student.name);
+    setEmail(student.email ?? "");
+    setLevel(student.level);
+    setHourlyRate(String(student.hourlyRate));
+    setError(null);
+    setIsOpen(true);
+  };
+
+  const toggleStudentStatus = async (student: Student) => {
+    const newStatus = student.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED";
+    setStudents((prev) =>
+      prev.map((s) => (s.id === student.id ? { ...s, status: newStatus } : s)),
+    );
+    await updateStudentStatus(student.id, newStatus);
+  };
 
   const handleSave = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    const result = await createStudent(name, email, level, Number(hourlyRate));
+    const result =
+      dialogMode === "edit" && editingStudentId
+        ? await updateStudent(
+            editingStudentId,
+            name,
+            email,
+            level,
+            Number(hourlyRate),
+          )
+        : await createStudent(name, email, level, Number(hourlyRate));
 
     setIsLoading(false);
 
     if (result?.error) {
       setError(result.error);
-    } else {
+    } else if (result.student) {
+      const saved = result.student;
       setStudents((prev) =>
-        result.student ? [...prev, result.student] : prev,
+        dialogMode === "edit"
+          ? prev.map((s) => (s.id === saved.id ? saved : s))
+          : [...prev, saved],
       );
-
-      setName("");
-      setEmail("");
-      setLevel("b1");
-      setHourlyRate("1500");
-      setIsOpen(false);
+      handleDialogChange(false);
       router.refresh();
     }
   };
@@ -107,7 +160,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
           </p>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleDialogChange}>
           <DialogTrigger asChild>
             <Button
               size="sm"
@@ -120,10 +173,14 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
           <DialogContent className="sm:max-w-106.25 border-border/40 bg-sidebar">
             <DialogHeader>
               <DialogTitle className="text-base font-semibold">
-                Новый ученик
+                {dialogMode === "edit"
+                  ? "Редактировать ученика"
+                  : "Новый ученик"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Заполните основные данные для создания карточки студента.
+                {dialogMode === "edit"
+                  ? "Измените данные карточки студента."
+                  : "Заполните основные данные для создания карточки студента."}
               </DialogDescription>
             </DialogHeader>
 
@@ -213,7 +270,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => handleDialogChange(false)}
                   disabled={isLoading}
                   className="h-9 text-xs border-border/60 bg-sidebar/50"
                 >
@@ -247,7 +304,12 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
               Всего студентов
             </p>
             <p className="text-lg font-bold mt-1">
-              {pluralize(students.length, "человек", "человека", "человек")}
+              {pluralize(
+                activeStudents.length,
+                "человек",
+                "человека",
+                "человек",
+              )}
             </p>
           </CardContent>
         </Card>
@@ -300,11 +362,38 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
         </Button>
       </div>
 
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => setActiveTab("active")}
+          className={cn(
+            "px-3 h-8 rounded-lg text-xs font-medium transition-colors border",
+            activeTab === "active"
+              ? "bg-sidebar text-foreground border-border/40 shadow-sm"
+              : "text-muted-foreground border-transparent hover:text-foreground",
+          )}
+        >
+          Активные · {activeStudents.length}
+        </button>
+        <button
+          onClick={() => setActiveTab("archive")}
+          className={cn(
+            "px-3 h-8 rounded-lg text-xs font-medium transition-colors border",
+            activeTab === "archive"
+              ? "bg-sidebar text-foreground border-border/40 shadow-sm"
+              : "text-muted-foreground border-transparent hover:text-foreground",
+          )}
+        >
+          Архив · {archivedStudents.length}
+        </button>
+      </div>
+
       <Card className="border-border/40 bg-sidebar shadow-sm overflow-hidden">
         <StudentsList
           setStudentToDelete={setStudentToDelete}
           setIsDeleteOpen={setIsDeleteOpen}
-          students={students}
+          students={visibleStudents}
+          onEdit={openEditDialog}
+          onToggleStatus={toggleStudentStatus}
         />
       </Card>
 

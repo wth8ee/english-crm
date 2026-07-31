@@ -22,7 +22,7 @@ import { Student } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { createLesson, getStudentById } from "@/lib/actions";
 import { format } from "date-fns";
-import { finalLesson } from "./CalendarClient";
+import { finalLesson } from "@/types/lessons";
 import { useState } from "react";
 import { Slider } from "./ui/slider";
 
@@ -66,6 +66,9 @@ export function ScheduleDialog({
   setUnbookedStudents,
 }: ScheduleDialogProps) {
   const [duration, setDuration] = useState<number>(60);
+  const [comment, setComment] = useState<string>("");
+  const [isTrial, setIsTrial] = useState<boolean>(false);
+  const [trialPrice, setTrialPrice] = useState<string>("0");
 
   async function handleSave() {
     if (!selectedStudentId || isLoading) return;
@@ -75,6 +78,11 @@ export function ScheduleDialog({
       selectedTime,
       selectedDate || format(new Date(), "yyyy.MM.dd").split(".").join("-"),
       duration,
+      {
+        comment,
+        isTrial,
+        price: isTrial ? Number(trialPrice) || 0 : undefined,
+      },
     );
     if (selectedDate && weekDates.includes(selectedDate)) {
       setUnbookedStudents((prev) =>
@@ -85,6 +93,9 @@ export function ScheduleDialog({
       setError(result.error);
     }
     setIsOpen(false);
+    setComment("");
+    setIsTrial(false);
+    setTrialPrice("0");
     for (const key in weekDates) {
       if (weekDates[key] === result.lesson?.date) {
         const student = await getStudentById(result.lesson.studentId);
@@ -97,6 +108,8 @@ export function ScheduleDialog({
           level: student?.level || "None",
           duration: result.lesson.duration,
           price: result.lesson.price,
+          comment: result.lesson.comment,
+          isTrial: result.lesson.isTrial,
         };
         setLessons((prev) => [...prev, newLesson]);
         setSelectedStudentId(undefined);
@@ -206,6 +219,53 @@ export function ScheduleDialog({
               className="cursor-pointer"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="lesson-comment" className="text-xs font-medium">
+            Комментарий
+          </Label>
+          <textarea
+            id="lesson-comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Например: повторить времена, новый учебник..."
+            rows={2}
+            className="flex w-full rounded-md border border-border/40 bg-background px-3 py-2 text-xs placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          <label
+            htmlFor="lesson-trial"
+            className="flex items-center gap-2.5 cursor-pointer select-none"
+          >
+            <input
+              id="lesson-trial"
+              type="checkbox"
+              checked={isTrial}
+              onChange={(e) => setIsTrial(e.target.checked)}
+              className="h-4 w-4 rounded border-border/60 accent-violet-500 cursor-pointer"
+            />
+            <span className="text-xs font-medium">Пробный урок</span>
+          </label>
+
+          {isTrial && (
+            <div className="space-y-1.5">
+              <Label htmlFor="lesson-price" className="text-xs font-medium">
+                Цена пробного урока, ₽
+              </Label>
+              <Input
+                id="lesson-price"
+                type="number"
+                min={0}
+                step={50}
+                value={trialPrice}
+                onChange={(e) => setTrialPrice(e.target.value)}
+                className="h-9 text-xs bg-background border-border/40"
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter className="pt-2">

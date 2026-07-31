@@ -49,6 +49,82 @@ export async function createStudent(
   }
 }
 
+export async function updateStudent(
+  studentId: string,
+  name: string,
+  email: string,
+  level: string,
+  hourlyRate: number,
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session || !session.user) {
+      return { error: "Неавторизированный доступ" };
+    }
+
+    if (!name.trim()) {
+      return { error: "Имя ученика обязательно для заполнения" };
+    }
+
+    if (hourlyRate <= 0) {
+      return { error: "Стоимость часа должна быть больше нуля" };
+    }
+
+    const updatedStudent = await prisma.student.update({
+      where: {
+        id: studentId,
+        userId: session.user.id,
+      },
+      data: {
+        name: name,
+        email: email,
+        level: level,
+        hourlyRate: hourlyRate,
+      },
+    });
+
+    revalidatePath("/students");
+    return { error: null, student: updatedStudent };
+  } catch (err) {
+    console.error("Ошибка при обновлении ученика:", err);
+    return { error: "Не удалось обновить данные ученика" };
+  }
+}
+
+export async function updateStudentStatus(
+  studentId: string,
+  status: "ACTIVE" | "ARCHIVED",
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session || !session.user) {
+      return { error: "Неавторизированный доступ" };
+    }
+
+    const updatedStudent = await prisma.student.update({
+      where: {
+        id: studentId,
+        userId: session.user.id,
+      },
+      data: {
+        status: status,
+      },
+    });
+
+    revalidatePath("/students");
+    return { error: null, student: updatedStudent };
+  } catch (err) {
+    console.error("Ошибка при смене статуса ученика:", err);
+    return { error: "Не удалось изменить статус ученика" };
+  }
+}
+
 export async function getUserStudents() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -72,6 +148,7 @@ export async function createLesson(
   time: string,
   date: string,
   duration: number,
+  options?: { comment?: string; isTrial?: boolean; price?: number },
 ) {
   try {
     const session = await auth.api.getSession({
@@ -100,7 +177,11 @@ export async function createLesson(
         time: time,
         status: "scheduled",
         duration: duration,
-        price: student.hourlyRate,
+        price: options?.isTrial
+          ? Math.max(0, Math.round(options?.price ?? 0))
+          : student.hourlyRate,
+        comment: options?.comment?.trim() || null,
+        isTrial: options?.isTrial ?? false,
       },
     });
 

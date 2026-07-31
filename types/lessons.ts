@@ -1,5 +1,19 @@
 import { Prisma } from "@/generated/prisma/client";
 
+// Урок в клиентском состоянии календаря (dayIndex — индекс в массиве видимых дат)
+export interface finalLesson {
+  dayIndex: number;
+  time: string;
+  student: string;
+  status: string;
+  level: string;
+  id: string;
+  duration: number;
+  price: number;
+  comment: string | null;
+  isTrial: boolean;
+}
+
 export type LessonWithStudent = Prisma.LessonGetPayload<{
   include: {
     student: true;

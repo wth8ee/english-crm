@@ -104,6 +104,8 @@ model Lesson {
   studentId String
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   price     Int
+  comment   String?
+  isTrial   Boolean  @default(false)
 
   @@index([userId])
   @@index([studentId])

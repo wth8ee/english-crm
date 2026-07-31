@@ -1,44 +1,32 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ScheduleDialog } from "./ScheduleDialog";
-import { daysOfWeek, timeSlots } from "@/constants/timetable";
+import { dayNamesShort } from "@/constants/timetable";
 import { Student } from "@/generated/prisma/client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getWeekDates } from "@/lib/date";
+import { getVisibleDates } from "@/lib/date";
 import { format } from "date-fns";
 import {
   deleteLessonById,
   getWeekLessons,
   updateLessonStatus,
 } from "@/lib/actions";
-import { cn, shorten } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { cn } from "@/lib/utils";
+import { finalLesson } from "@/types/lessons";
+import { TimeAxis } from "./calendar/TimeAxis";
+import { DayColumn } from "./calendar/DayColumn";
+import { MiniCalendar } from "./calendar/MiniCalendar";
+import { OccupancyCard } from "./calendar/OccupancyCard";
 
 interface CalendarClientProps {
   students: Student[];
   initialUnbookedStudents: Student[];
 }
 
-export interface finalLesson {
-  dayIndex: number;
-  time: string;
-  student: string;
-  status: string;
-  level: string;
-  id: string;
-  duration: number;
-  price: number;
-}
+const MIN_COL_WIDTH = 170;
 
 export function CalendarClient({
   students,
@@ -65,33 +53,32 @@ export function CalendarClient({
 
   const [lessons, setLessons] = useState<finalLesson[]>([]);
 
-  const currentUrlDate =
-    searchParams.get("date") || new Date().toISOString().split("T")[0];
-  const weekDates = getWeekDates(currentUrlDate);
-  const formatLongDateRange = (dates: string[]) => {
-    const formatter = new Intl.DateTimeFormat("ru", {
-      day: "numeric",
-      month: "long",
-    });
-    const firstDay = formatter.format(new Date(dates[0]));
-    const lastDay = formatter.format(new Date(dates[6]));
-    return `${firstDay} – ${lastDay}`;
-  };
-  const weekRangeText = formatLongDateRange(weekDates);
-
-  const handleWeekChange = (direction: "prev" | "next") => {
-    const baseDate = new Date(currentUrlDate);
-    const daysOffset = direction === "next" ? 7 : -7;
-    baseDate.setDate(baseDate.getDate() + daysOffset);
-
-    const newDateStr = baseDate.toISOString().split("T")[0];
-    router.push(`/calendar?date=${newDateStr}`);
-  };
-
   const today = new Date();
   const todayFormatted = format(today, "yyyy-MM-dd");
 
-  const handleCellClick = (time: string, date: string) => {
+  const currentUrlDate = searchParams.get("date") || todayFormatted;
+  const visibleDates = getVisibleDates(currentUrlDate);
+
+  const rangeFormatter = new Intl.DateTimeFormat("ru", {
+    day: "numeric",
+    month: "long",
+  });
+  const rangeText =
+    visibleDates.length > 1
+      ? `${rangeFormatter.format(new Date(visibleDates[0]))} – ${rangeFormatter.format(new Date(visibleDates[visibleDates.length - 1]))}`
+      : rangeFormatter.format(new Date(visibleDates[0]));
+
+  const handleDayShift = (direction: "prev" | "next") => {
+    const baseDate = new Date(currentUrlDate);
+    baseDate.setDate(baseDate.getDate() + (direction === "next" ? 1 : -1));
+    router.push(`/calendar?date=${format(baseDate, "yyyy-MM-dd")}`);
+  };
+
+  const handleToday = () => {
+    router.push(`/calendar?date=${todayFormatted}`);
+  };
+
+  const handleSlotClick = (date: string, time: string) => {
     setSelectedDate(date);
     setSelectedTime(time);
     setIsOpen(true);
@@ -99,8 +86,7 @@ export function CalendarClient({
 
   const deleteLesson = async (lessonId: string) => {
     deleteLessonById(lessonId);
-    const newLessons = lessons.filter((lesson) => lesson.id != lessonId);
-    setLessons(newLessons);
+    setLessons((prev) => prev.filter((lesson) => lesson.id !== lessonId));
   };
 
   const changeLessonStatus = async (
@@ -112,23 +98,24 @@ export function CalendarClient({
       | "rescheduled"
       | "confirmed",
   ) => {
-    const newLessons = lessons.map((lesson) =>
-      lesson.id === lessonId ? { ...lesson, status: status } : lesson,
+    setLessons((prev) =>
+      prev.map((lesson) =>
+        lesson.id === lessonId ? { ...lesson, status } : lesson,
+      ),
     );
-    setLessons(newLessons);
     updateLessonStatus(lessonId, status);
   };
 
   useEffect(() => {
     const fetchLessons = async () => {
-      const fetchedLessons = await getWeekLessons(weekDates);
+      const fetchedLessons = await getWeekLessons(visibleDates);
       const newLessons: finalLesson[] = [];
       if (fetchedLessons?.length) {
-        for (const key in weekDates) {
-          const day = weekDates[key];
+        for (const key in visibleDates) {
+          const day = visibleDates[key];
           for (const lesson of fetchedLessons) {
             if (lesson.date === day) {
-              const newLesson = {
+              newLessons.push({
                 dayIndex: Number(key),
                 time: lesson.time,
                 student: lesson.student.name,
@@ -137,8 +124,9 @@ export function CalendarClient({
                 id: lesson.id,
                 duration: lesson.duration,
                 price: lesson.price,
-              };
-              newLessons.push(newLesson);
+                comment: lesson.comment,
+                isTrial: lesson.isTrial,
+              });
             }
           }
         }
@@ -147,22 +135,12 @@ export function CalendarClient({
     };
 
     fetchLessons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUrlDate]);
 
-  const plannedHours =
-    lessons.length > 0
-      ? lessons.reduce((acc, lesson) => acc + lesson.duration / 60, 0)
-      : 0;
-  const finishedHours =
-    lessons.length > 0
-      ? lessons.reduce(
-          (acc, lesson) =>
-            ["confirmed", "completed"].includes(lesson.status)
-              ? acc + lesson.duration / 60
-              : acc,
-          0,
-        )
-      : 0;
+  const totalCols = visibleDates.length;
+  const gridMinWidth = totalCols * MIN_COL_WIDTH;
+  const gridTemplate = `repeat(${totalCols}, minmax(${MIN_COL_WIDTH}px, 1fr))`;
 
   return (
     <div className="space-y-4">
@@ -170,31 +148,40 @@ export function CalendarClient({
         <div>
           <h1 className="text-xl font-bold tracking-tight">Расписание</h1>
           <p className="text-xs text-muted-foreground">
-            Планирование занятий и сетка уроков на неделю.
+            Планирование занятий и сетка уроков.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 text-xs font-medium border-border/40 bg-sidebar"
+            onClick={handleToday}
+          >
+            Сегодня
+          </Button>
+
           <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-sidebar shadow-sm">
             <Button
               variant="ghost"
               size="icon"
               className="h-9 w-9 rounded-none border-r border-border/20"
-              onClick={() => handleWeekChange("prev")}
+              onClick={() => handleDayShift("prev")}
             >
               <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             </Button>
 
             <div className="px-3 text-xs font-medium text-foreground flex items-center gap-1.5 whitespace-nowrap">
               <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
-              {weekRangeText}
+              {rangeText}
             </div>
 
             <Button
               variant="ghost"
               size="icon"
               className="h-9 w-9 rounded-none border-l border-border/20"
-              onClick={() => handleWeekChange("next")}
+              onClick={() => handleDayShift("next")}
             >
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -203,12 +190,7 @@ export function CalendarClient({
           <Button
             size="sm"
             className="h-9 gap-1.5 text-xs font-medium"
-            onClick={() =>
-              handleCellClick(
-                "09:00",
-                format(new Date(), "yyyy.MM.dd").split(".").join("-"),
-              )
-            }
+            onClick={() => handleSlotClick(todayFormatted, "09:00")}
           >
             <Plus className="h-4 w-4" />
             Запланировать урок
@@ -216,24 +198,38 @@ export function CalendarClient({
         </div>
       </div>
 
-      <div className="w-full">
-        <div className="w-full overflow-x-auto pb-4 touch-pan-x scrollbar-thin">
-          <Card className="min-w-350 border-border/40 bg-sidebar shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="grid touch-pan-x grid-cols-8 border-b border-border/40 bg-muted/40 text-center min-h-12 items-center shrink-0 py-1">
-                <div className="text-[10px] font-semibold text-muted-foreground">
-                  Время
-                </div>
-                {weekDates.map((date, idx) => {
+      <div className="flex gap-4 items-start w-full">
+        {/* ──── Главный календарь ──── */}
+        <div className="flex-1 min-w-0 rounded-2xl border border-border/40 bg-sidebar shadow-sm flex flex-col overflow-hidden">
+          {/* Единый горизонтальный скрол для хедера + тела */}
+          <div className="overflow-x-auto [scrollbar-width:thin]">
+            {/* ── Хедер с днями ── */}
+            <div
+              className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[52px] shrink-0"
+              style={{ minWidth: `${64 + gridMinWidth}px` }}
+            >
+              {/* Заглушка под ось времени */}
+              <div className="w-16 border-r border-border/40 flex-shrink-0 h-full" />
+
+              <div
+                className="grid h-full divide-x divide-border/40"
+                style={{
+                  gridTemplateColumns: gridTemplate,
+                  width: `${gridMinWidth}px`,
+                  flex: "1 1 auto",
+                }}
+              >
+                {visibleDates.map((date) => {
                   const isToday = todayFormatted === date;
+                  const dayOfWeek = new Date(date).getDay();
 
                   return (
                     <div
-                      key={idx}
+                      key={date}
                       className={cn(
-                        "flex flex-col justify-center items-center h-9 rounded-lg mx-0.5 transition-colors",
+                        "flex flex-col justify-center items-center h-full transition-colors",
                         isToday &&
-                          "bg-muted border border-foreground/25 border-dashed shadow-[0_1px_3px_rgba(0,0,0,0.02)]",
+                          "bg-muted border-x border-foreground/25 border-dashed",
                       )}
                     >
                       <p
@@ -244,7 +240,7 @@ export function CalendarClient({
                             : "text-foreground/80",
                         )}
                       >
-                        {daysOfWeek[idx].name}
+                        {dayNamesShort[dayOfWeek]}
                       </p>
                       <p
                         className={cn(
@@ -254,251 +250,52 @@ export function CalendarClient({
                             : "text-muted-foreground",
                         )}
                       >
-                        {date
-                          .slice(date.length - 5, date.length)
-                          .split("-")
-                          .join(".")}
+                        {date.slice(8)}.{date.slice(5, 7)}
                       </p>
                     </div>
                   );
                 })}
               </div>
-              <div className="divide-y divide-border/30">
-                {timeSlots.map((slot) => (
-                  <div
-                    key={slot}
-                    className="grid grid-cols-8 h-12 divide-x divide-border/20"
-                  >
-                    <div className="text-[10px] font-medium text-muted-foreground/80 flex items-center justify-center bg-muted/10">
-                      {slot}
-                    </div>
+            </div>
 
-                    {weekDates.map((date, dayIdx) => {
-                      const isToday = todayFormatted === date;
-                      const currentHour = parseInt(slot.split(":")[0]);
-                      const lesson = lessons.find((l) => {
-                        const lessonHour = parseInt(l.time.split(":")[0]);
-                        return (
-                          l.dayIndex === dayIdx && lessonHour === currentHour
-                        );
-                      });
-                      return (
-                        <div
-                          key={dayIdx}
-                          className={cn(
-                            "p-0.5 relative group cursor-pointer transition-colors",
-                            isToday
-                              ? "bg-muted/40 hover:bg-muted border-dashed border-foreground/25 border-l border-r"
-                              : "bg-background/20 hover:bg-foreground/1",
-                          )}
-                          onClick={() => !lesson && handleCellClick(slot, date)}
-                        >
-                          {lesson ? (
-                            <DropdownMenu key={dayIdx}>
-                              <DropdownMenuTrigger asChild>
-                                <div
-                                  className={cn(
-                                    "absolute inset-0.5 px-2 rounded border flex items-center justify-between overflow-hidden transition-all shadow-[0_1px_4px_-1px_rgba(0,0,0,0.02)] cursor-pointer select-none",
-
-                                    lesson.status === "completed" &&
-                                      lesson.status === "completed" &&
-                                      "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-medium",
-                                    lesson.status === "confirmed" &&
-                                      "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold",
-                                    lesson.status === "cancelled" &&
-                                      "bg-destructive/10 border-destructive/20 text-destructive opacity-60 [&_p]:line-through",
-
-                                    lesson.status === "scheduled" &&
-                                      "bg-violet-500/10 border-violet-500/30 text-violet-600 dark:text-violet-400",
-                                    lesson.status === "rescheduled" &&
-                                      "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400",
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2 w-full min-w-0">
-                                    <span className="text-[10px] font-bold tracking-tight shrink-0">
-                                      {lesson.time}
-                                    </span>
-
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <p className="text-[10px] font-semibold truncate">
-                                            {shorten(lesson.student)}
-                                          </p>
-                                        </TooltipTrigger>
-                                        <TooltipContent
-                                          side="top"
-                                          className="bg-popover text-popover-foreground border border-border/40 text-[10px] font-medium px-2 py-1 rounded-md shadow-md"
-                                        >
-                                          {lesson.student}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-
-                                    <div className="flex gap-1">
-                                      <span
-                                        className={cn(
-                                          "text-[8px] font-bold uppercase tracking-wider border px-1 py-0.5 rounded shrink-0",
-                                          lesson.status === "completed" &&
-                                            "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/30",
-                                          lesson.status === "scheduled" &&
-                                            "bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/30",
-                                          lesson.status === "confirmed" &&
-                                            "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30",
-                                        )}
-                                      >
-                                        {lesson.duration / 60} ч.
-                                      </span>
-
-                                      <span
-                                        className={cn(
-                                          "text-[8px] font-bold uppercase tracking-wider border px-1 py-0.5 rounded shrink-0",
-                                          lesson.status === "completed" &&
-                                            "bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/30",
-                                          lesson.status === "scheduled" &&
-                                            "bg-violet-500/10 dark:bg-violet-500/15 border-violet-500/30",
-                                          lesson.status === "confirmed" &&
-                                            "bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30",
-                                        )}
-                                      >
-                                        {lesson.level}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="center"
-                                sideOffset={6}
-                                className="bg-sidebar/95 backdrop-blur-md border border-border/50 text-xs min-w-46.25 p-1.5 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] animate-in fade-in-50 zoom-in-95"
-                              >
-                                {lesson.status !== "completed" &&
-                                  lesson.status !== "confirmed" &&
-                                  lesson.status !== "cancelled" && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          changeLessonStatus(
-                                            lesson.id,
-                                            "completed",
-                                          )
-                                        }
-                                        className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                      >
-                                        <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
-                                        <span className="font-medium tracking-tight">
-                                          Завершить урок
-                                        </span>
-                                      </DropdownMenuItem>
-
-                                      <DropdownMenuItem
-                                        disabled
-                                        className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                      >
-                                        <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
-                                        <span className="font-medium tracking-tight">
-                                          Перенести
-                                        </span>
-                                      </DropdownMenuItem>
-
-                                      <div className="h-px bg-border/40 my-1.5 mx-1" />
-
-                                      <DropdownMenuItem
-                                        onClick={() => deleteLesson(lesson.id)}
-                                        className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-destructive/90 transition-colors select-none outline-none focus:bg-destructive/10 focus:text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                                      >
-                                        <span className="h-2 w-2 rounded-full bg-destructive shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
-                                        <span className="font-medium tracking-tight">
-                                          Отменить урок
-                                        </span>
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-
-                                {lesson.status === "completed" && (
-                                  <>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        changeLessonStatus(
-                                          lesson.id,
-                                          "confirmed",
-                                        )
-                                      }
-                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                    >
-                                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                                      <span className="font-medium tracking-tight">
-                                        Отметить как оплачен
-                                      </span>
-                                    </DropdownMenuItem>
-
-                                    <div className="h-px bg-border/40 my-1.5 mx-1" />
-
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        changeLessonStatus(
-                                          lesson.id,
-                                          "scheduled",
-                                        )
-                                      }
-                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                    >
-                                      <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(14,165,233,0.4)]" />
-                                      <span className="font-medium tracking-tight">
-                                        Вернуть в ожидание
-                                      </span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-
-                                {(lesson.status === "confirmed" ||
-                                  lesson.status === "cancelled") && (
-                                  <>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        changeLessonStatus(
-                                          lesson.id,
-                                          "completed",
-                                        )
-                                      }
-                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                    >
-                                      <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
-                                      <span className="font-medium tracking-tight">
-                                        Отметить как не оплачен
-                                      </span>
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        changeLessonStatus(
-                                          lesson.id,
-                                          "scheduled",
-                                        )
-                                      }
-                                      className="flex items-center gap-3 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 transition-colors select-none outline-none focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
-                                    >
-                                      <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 translate-y-[0.5px] shadow-[0_0_8px_rgba(14,165,233,0.4)]" />
-                                      <span className="font-medium tracking-tight">
-                                        Вернуть в ожидание
-                                      </span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>{" "}
-                            </DropdownMenu>
-                          ) : (
-                            <div className="h-full w-full" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+            {/* ── Тело: ось времени + колонки дней ── */}
+            <div
+              className="flex overflow-y-auto relative"
+              style={{
+                minWidth: `${64 + gridMinWidth}px`,
+                maxHeight: "calc(100svh - 210px)",
+              }}
+            >
+              <TimeAxis />
+              <div
+                className="grid divide-x divide-border/30 relative"
+                style={{
+                  gridTemplateColumns: gridTemplate,
+                  width: `${gridMinWidth}px`,
+                  flex: "1 1 auto",
+                }}
+              >
+                {visibleDates.map((date, idx) => (
+                  <DayColumn
+                    key={date}
+                    date={date}
+                    isToday={todayFormatted === date}
+                    lessons={lessons.filter((l) => l.dayIndex === idx)}
+                    onSlotClick={handleSlotClick}
+                    onChangeStatus={changeLessonStatus}
+                    onDelete={deleteLesson}
+                  />
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
+
+        {/* ──── Сайдбар (только xl+) ──── */}
+        <aside className="hidden xl:flex flex-col gap-4 w-[290px] shrink-0">
+          <MiniCalendar selectedDate={currentUrlDate} />
+          <OccupancyCard dates={visibleDates} lessons={lessons} />
+        </aside>
       </div>
 
       <ScheduleDialog
@@ -515,7 +312,7 @@ export function CalendarClient({
         setIsLoading={setIsLoading}
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
-        weekDates={weekDates}
+        weekDates={visibleDates}
         lessons={lessons}
         setLessons={setLessons}
         setUnbookedStudents={setUnbookedStudents}
