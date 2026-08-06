@@ -27,7 +27,7 @@ interface CalendarClientProps {
   initialUnbookedStudents: Student[];
 }
 
-const MIN_COL_WIDTH = 170;
+const MIN_COL_WIDTH = 150;
 
 export function CalendarClient({
   students,
@@ -144,77 +144,86 @@ export function CalendarClient({
   const gridTemplate = `repeat(${totalCols}, minmax(${MIN_COL_WIDTH}px, 1fr))`;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="space-y-3 sm:space-y-4">
+      {/* ── Шапка страницы ── */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold tracking-tight">Расписание</h1>
-          <p className="text-xs text-muted-foreground">
+          <p className="hidden sm:block text-xs text-muted-foreground">
             Планирование занятий и сетка уроков.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
+        {/* Правая группа кнопок */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Сегодня — скрыт на самых маленьких */}
           <Button
             variant="outline"
             size="sm"
-            className="h-9 text-xs font-medium border-border/40 bg-sidebar"
+            className="hidden xs:flex h-8 sm:h-9 text-xs font-medium border-border/40 bg-sidebar"
             onClick={handleToday}
           >
             Сегодня
           </Button>
 
+          {/* Навигация по датам */}
           <div className="flex items-center border border-border/40 rounded-lg overflow-hidden bg-sidebar shadow-sm">
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-none border-r border-border/20"
+              className="h-8 sm:h-9 w-8 sm:w-9 rounded-none border-r border-border/20"
               onClick={() => handleDayShift("prev")}
             >
               <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             </Button>
 
-            <div className="px-3 text-xs font-medium text-foreground flex items-center gap-1.5 whitespace-nowrap">
-              <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
-              {rangeText}
+            <div className="px-2 sm:px-3 text-xs font-medium text-foreground flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
+              <CalendarRange className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">{rangeText}</span>
+              {/* На мобиле только текущая дата центра */}
+              <span className="sm:hidden">
+                {new Date(currentUrlDate).toLocaleDateString("ru", { day: "numeric", month: "short" })}
+              </span>
             </div>
 
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-none border-l border-border/20"
+              className="h-8 sm:h-9 w-8 sm:w-9 rounded-none border-l border-border/20"
               onClick={() => handleDayShift("next")}
             >
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Button>
           </div>
 
+          {/* Кнопка добавления — иконка на мобиле, текст на десктопе */}
           <Button
             size="sm"
-            className="h-9 gap-1.5 text-xs font-medium"
+            className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-medium px-2 sm:px-3"
             onClick={() => handleSlotClick(todayFormatted, "09:00")}
           >
             <Plus className="h-4 w-4" />
-            Запланировать урок
+            <span className="hidden sm:inline">Запланировать урок</span>
           </Button>
         </div>
       </div>
 
       <div className="flex gap-4 items-start w-full">
         {/* ──── Главный календарь ──── */}
-        <div className="flex-1 min-w-0 rounded-2xl border border-border/40 bg-sidebar shadow-sm flex flex-col overflow-hidden">
-          {/* Единый горизонтальный + вертикальный скрол — хедер sticky внутри */}
+        <div className="flex-1 min-w-0 rounded-xl sm:rounded-2xl border border-border/40 bg-sidebar shadow-sm overflow-hidden">
+          {/*
+            Единый scroll-контейнер: overflow-x + overflow-y.
+            Хедер sticky top-0, ось времени sticky left-0 — «заморожённая колонка».
+          */}
           <div
-            className="overflow-x-auto overflow-y-auto [scrollbar-width:thin]"
-            style={{ maxHeight: "calc(100svh - 158px)" }}
+            className="overflow-x-auto overflow-y-auto [scrollbar-width:thin] touch-pan-x"
+            style={{ maxHeight: "calc(100svh - 112px)" }}
           >
-            {/* Внутренний контейнер с фиксированной минимальной шириной */}
-            <div style={{ minWidth: `${64 + gridMinWidth}px` }}>
-              {/* ── Хедер с днями (sticky) ── */}
-              <div
-                className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[52px] sticky top-0 z-20"
-              >
-                {/* Заглушка под ось времени */}
-                <div className="w-16 flex-shrink-0 h-full border-r border-border/40" />
+            <div style={{ minWidth: `${52 + gridMinWidth}px` }}>
+              {/* ── Хедер (sticky top) ── */}
+              <div className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[46px] sm:h-[52px] sticky top-0 z-20">
+                {/* Топ-левый угол: sticky left И top */}
+                <div className="sticky left-0 z-30 w-[52px] sm:w-16 flex-shrink-0 h-full border-r border-border/40 bg-muted/40" />
 
                 <div
                   className="grid h-full divide-x divide-border/40 flex-1"
@@ -259,9 +268,10 @@ export function CalendarClient({
                 </div>
               </div>
 
-              {/* ── Тело: ось времени + колонки дней ── */}
+              {/* ── Тело ── */}
               <div className="flex">
-                <TimeAxis />
+                {/* Ось времени: sticky left — не уезжает при горизонтальном скролле */}
+                <TimeAxis compact />
                 <div
                   className="grid divide-x divide-border/30 flex-1"
                   style={{ gridTemplateColumns: gridTemplate }}
@@ -287,7 +297,7 @@ export function CalendarClient({
         <aside className="hidden xl:flex flex-col gap-4 w-[290px] shrink-0">
           <MiniCalendar selectedDate={currentUrlDate} />
           <OccupancyCard dates={visibleDates} lessons={lessons} />
-          <WeekEarningsCard dates={visibleDates} lessons={lessons} />
+          <WeekEarningsCard />
         </aside>
       </div>
 
