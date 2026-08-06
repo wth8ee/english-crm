@@ -7,7 +7,14 @@ import {
 } from "@/constants/timetable";
 import { cn, shorten } from "@/lib/utils";
 import { finalLesson } from "@/types/lessons";
-import { CheckCircle2, Clock, XCircle, BadgeCheck, MessageSquare, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  XCircle,
+  BadgeCheck,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +53,9 @@ const colors = [
 ];
 
 const lessonColorIndex = (lessonId: string) => {
-  const hash = lessonId.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const hash = lessonId
+    .split("")
+    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   return hash % colors.length;
 };
 
@@ -209,7 +218,7 @@ export function LessonCard({
               {!is30Min && !is45Min && (
                 <div className="mt-auto shrink-0 pt-1 border-t border-black/10 dark:border-zinc-700/40">
                   <p className="text-[10px] font-mono font-black tracking-tight leading-none text-black/70 dark:text-zinc-500">
-                    {lesson.price} ₽
+                    {(lesson.price * lesson.duration) / 60} ₽
                   </p>
                 </div>
               )}

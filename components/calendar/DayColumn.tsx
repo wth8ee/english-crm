@@ -64,16 +64,23 @@ export function DayColumn({
             className="absolute left-0 w-full pointer-events-none z-0"
             style={{ height: `${HOUR_HEIGHT}px` }}
           >
+            {/* Часовая линия — жирная и чёткая */}
             {hIdx !== 0 && (
               <div
-                className="absolute left-0 w-full border-b-2 border-border/50"
+                className="absolute left-0 w-full border-b-[1.5px] border-border/60"
                 style={{ top: `${topPosition}px` }}
               />
             )}
+            {/* Четвертичасовые линии — заметные, но тоньше часовых */}
             {[1, 2, 3].map((k) => (
               <div
                 key={k}
-                className="absolute left-0 w-full border-b border-border/15"
+                className={cn(
+                  "absolute left-0 w-full border-b",
+                  k === 2
+                    ? "border-border/35" // полчаса чуть ярче
+                    : "border-border/20", // 15 и 45 мин
+                )}
                 style={{ top: `${topPosition + k * SLOT_HEIGHT}px` }}
               />
             ))}

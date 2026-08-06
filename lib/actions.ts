@@ -502,6 +502,63 @@ export async function getUnbookedStudents() {
   return unbookedStudents;
 }
 
+export async function getLastMonthConfirmedLessons() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session || !session.user) {
+    return [];
+  }
+
+  const today = new Date();
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const startStr = `${lastMonthStart.getFullYear()}-${pad(lastMonthStart.getMonth() + 1)}-01`;
+  const endStr = `${lastMonthEnd.getFullYear()}-${pad(lastMonthEnd.getMonth() + 1)}-01`;
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      userId: session.user.id,
+      status: "confirmed",
+      date: {
+        gte: startStr,
+        lt: endStr,
+      },
+    },
+  });
+
+  return lessons;
+}
+
+export async function getScheduledThisMonthLessons() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session || !session.user) {
+    return [];
+  }
+
+  const today = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const monthPrefix = `${today.getFullYear()}-${pad(today.getMonth() + 1)}`;
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      userId: session.user.id,
+      status: { in: ["scheduled", "rescheduled"] },
+      date: {
+        startsWith: monthPrefix,
+      },
+    },
+  });
+
+  return lessons;
+}
+
 export async function getStudentsShares() {
   const session = await auth.api.getSession({
     headers: await headers(),

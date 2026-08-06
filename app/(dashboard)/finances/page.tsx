@@ -3,6 +3,8 @@ import {
   getAllLessons,
   getCompletedLessons,
   getConfirmedLessons,
+  getLastMonthConfirmedLessons,
+  getScheduledThisMonthLessons,
   getStudentsShares,
   getThisMonthLessons,
   getUserStudents,
@@ -30,6 +32,8 @@ export default async function Finances() {
     : 0;
   const avgHourlyRate = students.length ? hourlyRatesSum / students.length : 0;
   const studentsShares = await getStudentsShares();
+  const lastMonthLessons = await getLastMonthConfirmedLessons();
+  const scheduledThisMonth = await getScheduledThisMonthLessons();
 
   return (
     <FinancesClient
@@ -39,6 +43,8 @@ export default async function Finances() {
       confirmedLessons={confirmedLessons}
       avgHourlyRate={avgHourlyRate}
       completedLessons={completedLessons}
+      lastMonthLessons={lastMonthLessons}
+      scheduledThisMonth={scheduledThisMonth}
     />
   );
 }

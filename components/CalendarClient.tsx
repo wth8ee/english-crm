@@ -20,6 +20,7 @@ import { TimeAxis } from "./calendar/TimeAxis";
 import { DayColumn } from "./calendar/DayColumn";
 import { MiniCalendar } from "./calendar/MiniCalendar";
 import { OccupancyCard } from "./calendar/OccupancyCard";
+import { WeekEarningsCard } from "./calendar/WeekEarningsCard";
 
 interface CalendarClientProps {
   students: Student[];
@@ -201,91 +202,82 @@ export function CalendarClient({
       <div className="flex gap-4 items-start w-full">
         {/* ──── Главный календарь ──── */}
         <div className="flex-1 min-w-0 rounded-2xl border border-border/40 bg-sidebar shadow-sm flex flex-col overflow-hidden">
-          {/* Единый горизонтальный скрол для хедера + тела */}
-          <div className="overflow-x-auto [scrollbar-width:thin]">
-            {/* ── Хедер с днями ── */}
-            <div
-              className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[52px] shrink-0"
-              style={{ minWidth: `${64 + gridMinWidth}px` }}
-            >
-              {/* Заглушка под ось времени */}
-              <div className="w-16 border-r border-border/40 flex-shrink-0 h-full" />
-
+          {/* Единый горизонтальный + вертикальный скрол — хедер sticky внутри */}
+          <div
+            className="overflow-x-auto overflow-y-auto [scrollbar-width:thin]"
+            style={{ maxHeight: "calc(100svh - 158px)" }}
+          >
+            {/* Внутренний контейнер с фиксированной минимальной шириной */}
+            <div style={{ minWidth: `${64 + gridMinWidth}px` }}>
+              {/* ── Хедер с днями (sticky) ── */}
               <div
-                className="grid h-full divide-x divide-border/40"
-                style={{
-                  gridTemplateColumns: gridTemplate,
-                  width: `${gridMinWidth}px`,
-                  flex: "1 1 auto",
-                }}
+                className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[52px] sticky top-0 z-20"
               >
-                {visibleDates.map((date) => {
-                  const isToday = todayFormatted === date;
-                  const dayOfWeek = new Date(date).getDay();
+                {/* Заглушка под ось времени */}
+                <div className="w-16 flex-shrink-0 h-full border-r border-border/40" />
 
-                  return (
-                    <div
-                      key={date}
-                      className={cn(
-                        "flex flex-col justify-center items-center h-full transition-colors",
-                        isToday &&
-                          "bg-muted border-x border-foreground/25 border-dashed",
-                      )}
-                    >
-                      <p
+                <div
+                  className="grid h-full divide-x divide-border/40 flex-1"
+                  style={{ gridTemplateColumns: gridTemplate }}
+                >
+                  {visibleDates.map((date) => {
+                    const isToday = todayFormatted === date;
+                    const dayOfWeek = new Date(date).getDay();
+
+                    return (
+                      <div
+                        key={date}
                         className={cn(
-                          "text-xs font-semibold leading-none",
-                          isToday
-                            ? "text-foreground font-bold"
-                            : "text-foreground/80",
+                          "flex flex-col justify-center items-center h-full transition-colors",
+                          isToday &&
+                            "bg-muted border-x border-foreground/25 border-dashed",
                         )}
                       >
-                        {dayNamesShort[dayOfWeek]}
-                      </p>
-                      <p
-                        className={cn(
-                          "text-[9px] mt-0.5 font-normal leading-none",
-                          isToday
-                            ? "text-foreground/60 font-medium"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {date.slice(8)}.{date.slice(5, 7)}
-                      </p>
-                    </div>
-                  );
-                })}
+                        <p
+                          className={cn(
+                            "text-xs font-semibold leading-none",
+                            isToday
+                              ? "text-foreground font-bold"
+                              : "text-foreground/80",
+                          )}
+                        >
+                          {dayNamesShort[dayOfWeek]}
+                        </p>
+                        <p
+                          className={cn(
+                            "text-[9px] mt-0.5 font-normal leading-none",
+                            isToday
+                              ? "text-foreground/60 font-medium"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {date.slice(8)}.{date.slice(5, 7)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* ── Тело: ось времени + колонки дней ── */}
-            <div
-              className="flex overflow-y-auto relative"
-              style={{
-                minWidth: `${64 + gridMinWidth}px`,
-                maxHeight: "calc(100svh - 210px)",
-              }}
-            >
-              <TimeAxis />
-              <div
-                className="grid divide-x divide-border/30 relative"
-                style={{
-                  gridTemplateColumns: gridTemplate,
-                  width: `${gridMinWidth}px`,
-                  flex: "1 1 auto",
-                }}
-              >
-                {visibleDates.map((date, idx) => (
-                  <DayColumn
-                    key={date}
-                    date={date}
-                    isToday={todayFormatted === date}
-                    lessons={lessons.filter((l) => l.dayIndex === idx)}
-                    onSlotClick={handleSlotClick}
-                    onChangeStatus={changeLessonStatus}
-                    onDelete={deleteLesson}
-                  />
-                ))}
+              {/* ── Тело: ось времени + колонки дней ── */}
+              <div className="flex">
+                <TimeAxis />
+                <div
+                  className="grid divide-x divide-border/30 flex-1"
+                  style={{ gridTemplateColumns: gridTemplate }}
+                >
+                  {visibleDates.map((date, idx) => (
+                    <DayColumn
+                      key={date}
+                      date={date}
+                      isToday={todayFormatted === date}
+                      lessons={lessons.filter((l) => l.dayIndex === idx)}
+                      onSlotClick={handleSlotClick}
+                      onChangeStatus={changeLessonStatus}
+                      onDelete={deleteLesson}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -295,6 +287,7 @@ export function CalendarClient({
         <aside className="hidden xl:flex flex-col gap-4 w-[290px] shrink-0">
           <MiniCalendar selectedDate={currentUrlDate} />
           <OccupancyCard dates={visibleDates} lessons={lessons} />
+          <WeekEarningsCard dates={visibleDates} lessons={lessons} />
         </aside>
       </div>
 
