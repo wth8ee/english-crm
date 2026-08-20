@@ -8,8 +8,9 @@ import {
   TableRow,
 } from "./ui/table";
 import { Button } from "./ui/button";
-import { MoreHorizontal, Trash2, Pencil, Archive, ArchiveRestore } from "lucide-react";
-import { LANGUAGE_LEVELS, LanguageLevelKey } from "@/constants/languages";
+import { MoreHorizontal, Trash2, Pencil, Archive, ArchiveRestore, User } from "lucide-react";
+import Link from "next/link";
+import { EXAM_TYPES, ExamTypeKey } from "@/constants/examTypes";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -40,7 +41,7 @@ export function StudentsList({
           <TableHead className="w-56 text-xs font-semibold pl-6">
             Имя ученика
           </TableHead>
-          <TableHead className="text-xs font-semibold">Уровень</TableHead>
+          <TableHead className="text-xs font-semibold">Экзамен</TableHead>
           <TableHead className="text-xs font-semibold">Контакты</TableHead>
           <TableHead className="text-xs font-semibold">
             Стоимость часа
@@ -61,8 +62,8 @@ export function StudentsList({
           </TableRow>
         )}
         {students.map((student) => {
-          const levelKey = student.level as LanguageLevelKey;
-          const levelData = LANGUAGE_LEVELS[levelKey];
+          const typeKey = student.examType as ExamTypeKey;
+          const typeData = EXAM_TYPES[typeKey] || { label: student.examType, badgeClass: "" };
 
           return (
             <TableRow
@@ -78,11 +79,11 @@ export function StudentsList({
               <TableCell>
                 <span
                   className={cn(
-                    levelData.badgeClass,
+                    typeData.badgeClass,
                     "text-[10px] px-2 py-0.5 rounded font-medium border",
                   )}
                 >
-                  {levelData.label}
+                  {typeData.label}
                 </span>
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">
@@ -126,6 +127,17 @@ export function StudentsList({
                       <span className="font-medium tracking-tight text-nowrap">
                         Редактировать
                       </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={`/students/${student.id}`}
+                        className="flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg cursor-pointer text-foreground/90 select-none outline-none transition-colors focus:bg-muted/80 focus:text-foreground data-highlighted:bg-muted/80"
+                      >
+                        <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="font-medium tracking-tight text-nowrap">
+                          Профиль
+                        </span>
+                      </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem

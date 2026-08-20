@@ -10,7 +10,7 @@ import { getCurrentWeekDaysStrings } from "./utils";
 export async function createStudent(
   name: string,
   email: string,
-  level: string,
+  examType: string,
   hourlyRate: number,
 ) {
   try {
@@ -34,7 +34,7 @@ export async function createStudent(
       data: {
         name: name,
         email: email,
-        level: level,
+        examType: examType,
         hourlyRate: hourlyRate,
         status: "ACTIVE",
         userId: session.user.id,
@@ -53,7 +53,7 @@ export async function updateStudent(
   studentId: string,
   name: string,
   email: string,
-  level: string,
+  examType: string,
   hourlyRate: number,
 ) {
   try {
@@ -81,7 +81,7 @@ export async function updateStudent(
       data: {
         name: name,
         email: email,
-        level: level,
+        examType: examType,
         hourlyRate: hourlyRate,
       },
     });
@@ -359,7 +359,7 @@ export async function getTodayLessons() {
     },
     include: {
       student: {
-        select: { id: true, name: true, level: true },
+        select: { id: true, name: true, examType: true },
       },
     },
   });
@@ -595,3 +595,38 @@ export async function getStudentsShares() {
   }
   return incomeShares.toSorted((a, b) => b.percent - a.percent);
 }
+
+export async function saveTaskProgress(studentId: string, tasksJson: any, realisticScore: number, luckyScore: number) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session || !session.user) return { error: "Unauthorized" };
+  try {
+    const newSnapshot = await prisma.progressSnapshot.create({
+      data: {
+        studentId,
+        tasksJson,
+        realisticScore,
+        luckyScore,
+      }
+    });
+    revalidatePath(`/students/${studentId}`);
+    return { snapshot: newSnapshot };
+  } catch (err) {
+    console.error(err);
+    return { error: "Failed to save" };
+  }
+}
+
+export async function getStudentSnapshots(studentId: string) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session || !session.user) return [];
+  const snapshots = await prisma.progressSnapshot.findMany({
+    where: { studentId },
+    orderBy: { createdAt: "asc" }
+  });
+  return snapshots;
+}
+

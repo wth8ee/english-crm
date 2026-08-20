@@ -77,7 +77,7 @@ model Student {
   id           String        @id @default(cuid())
   name         String
   email        String?
-  level        String
+  examType     String
   hourlyRate   Int
   status       String
   createdAt    DateTime      @default(now())
@@ -86,9 +86,23 @@ model Student {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   lessons      Lesson[]
   transactions Transaction[]
+  snapshots    ProgressSnapshot[]
 
   @@index([userId])
   @@map("student")
+}
+
+model ProgressSnapshot {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  realisticScore Int
+  luckyScore     Int
+  tasksJson      Json
+
+  @@index([studentId])
+  @@map("progress_snapshot")
 }
 
 model Lesson {

@@ -105,7 +105,7 @@ export function ScheduleDialog({
           time: result.lesson.time,
           student: student?.name || "None",
           status: result.lesson.status || "archived",
-          level: student?.level || "None",
+          examType: student?.examType || "None",
           duration: result.lesson.duration,
           price: result.lesson.price,
           comment: result.lesson.comment,

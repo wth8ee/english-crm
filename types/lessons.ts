@@ -6,7 +6,7 @@ export interface finalLesson {
   time: string;
   student: string;
   status: string;
-  level: string;
+  examType: string;
   id: string;
   duration: number;
   price: number;
@@ -59,6 +59,6 @@ export interface TodayLessonWithStudent {
   student: {
     id: string;
     name: string;
-    level: string;
+    examType: string;
   };
 }

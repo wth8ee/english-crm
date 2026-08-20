@@ -58,7 +58,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [level, setLevel] = useState("B1");
+  const [examType, setExamType] = useState("ЕГЭ");
   const [hourlyRate, setHourlyRate] = useState("1500");
 
   const [students, setStudents] = useState(initialStudents);
@@ -73,12 +73,11 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
   const visibleStudents =
     activeTab === "active" ? activeStudents : archivedStudents;
 
-  const countStudentsByLevel = (level: string) => {
-    return activeStudents.filter((student) => student.level === level).length;
+  const countStudentsByExamType = (type: string) => {
+    return activeStudents.filter((student) => student.examType === type).length;
   };
-  const a1a2 = countStudentsByLevel("A1") + countStudentsByLevel("A2");
-  const b1b2 = countStudentsByLevel("B1") + countStudentsByLevel("B2");
-  const c1c2 = countStudentsByLevel("C1") + countStudentsByLevel("C2");
+  const ogeCount = countStudentsByExamType("ОГЭ");
+  const egeCount = countStudentsByExamType("ЕГЭ");
 
   const handleDialogChange = (open: boolean) => {
     setIsOpen(open);
@@ -88,7 +87,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
       setEditingStudentId(null);
       setName("");
       setEmail("");
-      setLevel("B1");
+      setExamType("ЕГЭ");
       setHourlyRate("1500");
     }
   };
@@ -98,7 +97,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
     setEditingStudentId(student.id);
     setName(student.name);
     setEmail(student.email ?? "");
-    setLevel(student.level);
+    setExamType(student.examType);
     setHourlyRate(String(student.hourlyRate));
     setError(null);
     setIsOpen(true);
@@ -123,10 +122,10 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
             editingStudentId,
             name,
             email,
-            level,
+            examType,
             Number(hourlyRate),
           )
-        : await createStudent(name, email, level, Number(hourlyRate));
+        : await createStudent(name, email, examType, Number(hourlyRate));
 
     setIsLoading(false);
 
@@ -223,27 +222,23 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="level" className="text-xs font-medium">
-                    Уровень
+                  <Label htmlFor="examType" className="text-xs font-medium">
+                    Экзамен
                   </Label>
                   <Select
-                    value={level}
-                    onValueChange={setLevel}
+                    value={examType}
+                    onValueChange={setExamType}
                     disabled={isLoading}
                   >
                     <SelectTrigger
-                      id="level"
+                      id="examType"
                       className="h-9 text-xs bg-background border-border/40"
                     >
                       <SelectValue placeholder="Выбрать" />
                     </SelectTrigger>
                     <SelectContent className="bg-sidebar border-border/40 text-xs">
-                      <SelectItem value="A1">A1 • Beginner</SelectItem>
-                      <SelectItem value="A2">A2 • Pre-Int</SelectItem>
-                      <SelectItem value="B1">B1 • Intermediate</SelectItem>
-                      <SelectItem value="B2">B2 • Upper-Int</SelectItem>
-                      <SelectItem value="C1">C1 • Advanced</SelectItem>
-                      <SelectItem value="C2">C2 • Proficiency</SelectItem>
+                      <SelectItem value="ОГЭ">ОГЭ</SelectItem>
+                      <SelectItem value="ЕГЭ">ЕГЭ</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -316,33 +311,24 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
         <Card className="border-border/40 bg-sidebar shadow-sm">
           <CardContent className="p-4">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Уровень A1 - A2
+              Сдают ОГЭ
             </p>
             <p className="text-lg font-bold mt-1">
-              {pluralize(a1a2, "ученик", "ученика", "учеников")}
+              {pluralize(ogeCount, "ученик", "ученика", "учеников")}
             </p>
           </CardContent>
         </Card>
         <Card className="border-border/40 bg-sidebar shadow-sm">
           <CardContent className="p-4">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Уровень B1 - B2
+              Сдают ЕГЭ
             </p>
             <p className="text-lg font-bold mt-1">
-              {pluralize(b1b2, "ученик", "ученика", "учеников")}
+              {pluralize(egeCount, "ученик", "ученика", "учеников")}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border/40 bg-sidebar shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-              Уровень C1 - C2
-            </p>
-            <p className="text-lg font-bold mt-1">
-              {pluralize(c1c2, "ученик", "ученика", "учеников")}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="hidden md:block"></div>
       </div>
 
       <div className="flex items-center gap-2">

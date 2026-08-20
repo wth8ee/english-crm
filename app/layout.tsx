@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
-import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/context/AuthProvider";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -22,8 +21,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "English CRM",
-  description: "Управляйте своими уроками английского в одном месте",
+  title: "IT CRM",
+  description: "Управляйте своими уроками в одном месте",
 };
 
 export default async function RootLayout({

@@ -201,7 +201,7 @@ export function LessonCard({
                       {lesson.student}
                     </p>
                     <p className="text-[10px] font-bold leading-tight line-clamp-1 mt-0.5 text-black/70 dark:text-zinc-400">
-                      {lesson.level} · {formatDuration(lesson.duration)}
+                      {lesson.examType} · {formatDuration(lesson.duration)}
                     </p>
                     {lesson.comment && (
                       <div className="flex items-start gap-1 mt-1.5 text-[10px] font-bold leading-tight text-black/80 dark:text-zinc-400">

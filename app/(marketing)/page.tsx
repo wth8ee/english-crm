@@ -17,7 +17,7 @@ export default function MarketingPage() {
   const { session } = useAuth();
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden overflow-y-auto bg-background px-4 sm:px-6 py-8 md:py-24 space-y-12 md:space-y-20">
+    <div className="w-full min-h-screen overflow-x-hidden overflow-y-auto bg-slate-200 dark:bg-background px-4 sm:px-6 py-8 md:py-24 space-y-12 md:space-y-20">
       <section className="text-center max-w-2xl mx-auto space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border/40 bg-sidebar text-[11px] font-medium text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5 text-foreground" />
@@ -25,7 +25,7 @@ export default function MarketingPage() {
         </div>
 
         <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
-          Управляйте своими уроками английского в одном месте
+          Управляйте своими уроками информатики в одном месте
         </h1>
 
         <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
@@ -81,8 +81,8 @@ export default function MarketingPage() {
           </div>
           <h3 className="text-sm font-semibold">Карточки учеников</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Полная база данных студентов. Храните контактные данные, текущий
-            уровень английского языка и историю посещений.
+            Полная база данных студентов. Храните контактные данные, выбранный
+            тип экзамена и историю посещений.
           </p>
         </div>
 
@@ -100,8 +100,8 @@ export default function MarketingPage() {
 
       <section className="border-t border-border/40 pt-10 text-center">
         <p className="text-[11px] text-muted-foreground">
-          &copy; {new Date().getFullYear()} CRM.English. Разработано специально
-          для преподавателей иностранных языков.
+          &copy; {new Date().getFullYear()} CRM.IT. Разработано специально
+          для преподавателей информатики.
         </p>
       </section>
     </div>

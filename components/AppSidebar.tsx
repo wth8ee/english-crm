@@ -59,7 +59,7 @@ export function AppSidebar() {
             <GraduationCap className="h-4 w-4" />
           </div>
           <span className="font-semibold text-sm tracking-tight text-foreground truncate">
-            English CRM
+            CRM Информатика
           </span>
         </div>
       </SidebarHeader>

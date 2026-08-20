@@ -121,7 +121,7 @@ export function CalendarClient({
                 time: lesson.time,
                 student: lesson.student.name,
                 status: lesson.status,
-                level: lesson.student.level,
+                examType: lesson.student.examType,
                 id: lesson.id,
                 duration: lesson.duration,
                 price: lesson.price,
@@ -223,7 +223,7 @@ export function CalendarClient({
               {/* ── Хедер (sticky top) ── */}
               <div className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[46px] sm:h-[52px] sticky top-0 z-20">
                 {/* Топ-левый угол: sticky left И top */}
-                <div className="sticky left-0 z-30 w-[52px] sm:w-16 flex-shrink-0 h-full border-r border-border/40 bg-muted/40" />
+                <div className="sticky left-0 z-30 w-[52px] flex-shrink-0 h-full border-r border-border/40 bg-muted/40" />
 
                 <div
                   className="grid h-full divide-x divide-border/40 flex-1"

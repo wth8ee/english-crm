@@ -28,22 +28,7 @@ export function getWeekDates(dateInput: string | Date = new Date()) {
  * сама дата по центру и два дня после.
  */
 export function getVisibleDates(dateInput: string | Date = new Date()) {
-  const centerDate =
-    typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-
-  const dates: string[] = [];
-  for (let i = -2; i <= 2; i++) {
-    const nextDay = new Date(centerDate);
-    nextDay.setDate(centerDate.getDate() + i);
-
-    const yyyy = nextDay.getFullYear();
-    const mm = String(nextDay.getMonth() + 1).padStart(2, "0");
-    const dd = String(nextDay.getDate()).padStart(2, "0");
-
-    dates.push(`${yyyy}-${mm}-${dd}`);
-  }
-
-  return dates;
+  return getWeekDates(dateInput);
 }
 
 export const getPast6Months = () => {

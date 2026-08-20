@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { LANGUAGE_LEVELS, LanguageLevelKey } from "@/constants/languages";
+import { EXAM_TYPES, ExamTypeKey } from "@/constants/examTypes";
 import { Lesson, Student } from "@/generated/prisma/client";
 import { cn, pluralize } from "@/lib/utils";
 import { TodayLessonWithStudent } from "@/types/lessons";
@@ -163,13 +163,12 @@ export function DashboardClient({
                             {lesson.student.name}
                           </p>
                           <p className="text-[10px] text-muted-foreground">
-                            Уровень:{" "}
+                            Экзамен:{" "}
                             {
-                              LANGUAGE_LEVELS[
-                                lesson.student.level as LanguageLevelKey
-                              ].label.split(" ")[2]
+                              EXAM_TYPES[
+                                lesson.student.examType as ExamTypeKey
+                              ].label
                             }{" "}
-                            ({lesson.student.level}){" "}
                             {(lesson.status === "completed" ||
                               lesson.status === "confirmed") &&
                               "• Урок завершен"}
@@ -223,9 +222,9 @@ export function DashboardClient({
           <CardContent>
             {unbookedStudents.length > 0 ? (
               unbookedStudents.map((student) => {
-                const levelKey = student.level as LanguageLevelKey;
-                const levelData = LANGUAGE_LEVELS[levelKey] || {
-                  label: student.level,
+                const typeKey = student.examType as ExamTypeKey;
+                const typeData = EXAM_TYPES[typeKey] || {
+                  label: student.examType,
                   badgeClass: "bg-muted text-muted-foreground border-border/40",
                 };
 
@@ -238,13 +237,11 @@ export function DashboardClient({
 
                       <span
                         className={cn(
-                          levelData.badgeClass,
+                          typeData.badgeClass,
                           "text-[9px] px-2 py-0.5 rounded font-medium border uppercase tracking-wider",
                         )}
                       >
-                        Уровень: {student.level}
-                        {" - "}
-                        {levelData.label.split(" ")[2] || student.level}
+                        {typeData.label}
                       </span>
                     </div>
                   </div>
