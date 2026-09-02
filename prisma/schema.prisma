@@ -79,6 +79,7 @@ model Student {
   email        String?
   examType     String
   hourlyRate   Int
+  lessonsPerWeek Float         @default(1)
   status       String
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

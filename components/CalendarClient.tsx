@@ -45,7 +45,7 @@ export function CalendarClient({
     undefined,
   );
 
-  const [unbookedStudents, setUnbookedStudents] = useState<Student[]>(
+  const [, setUnbookedStudents] = useState<Student[]>(
     initialUnbookedStudents || [],
   );
 
@@ -88,6 +88,7 @@ export function CalendarClient({
   const deleteLesson = async (lessonId: string) => {
     deleteLessonById(lessonId);
     setLessons((prev) => prev.filter((lesson) => lesson.id !== lessonId));
+    window.dispatchEvent(new CustomEvent("lesson-updated"));
   };
 
   const changeLessonStatus = async (
@@ -105,6 +106,7 @@ export function CalendarClient({
       ),
     );
     updateLessonStatus(lessonId, status);
+    window.dispatchEvent(new CustomEvent("lesson-updated"));
   };
 
   useEffect(() => {
@@ -144,7 +146,7 @@ export function CalendarClient({
   const gridTemplate = `repeat(${totalCols}, minmax(${MIN_COL_WIDTH}px, 1fr))`;
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-3 sm:space-y-4 flex flex-col h-[calc(100vh-112px)] md:h-[calc(100vh-128px)] min-h-0">
       {/* ── Шапка страницы ── */}
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
@@ -208,17 +210,14 @@ export function CalendarClient({
         </div>
       </div>
 
-      <div className="flex gap-4 items-start w-full">
+      <div className="flex gap-4 items-start w-full flex-1 min-h-0">
         {/* ──── Главный календарь ──── */}
-        <div className="flex-1 min-w-0 rounded-xl sm:rounded-2xl border border-border/40 bg-sidebar shadow-sm overflow-hidden">
+        <div className="flex-1 min-w-0 rounded-xl sm:rounded-2xl border border-border/40 bg-sidebar shadow-sm overflow-hidden h-full flex flex-col">
           {/*
             Единый scroll-контейнер: overflow-x + overflow-y.
             Хедер sticky top-0, ось времени sticky left-0 — «заморожённая колонка».
           */}
-          <div
-            className="overflow-x-auto overflow-y-auto [scrollbar-width:thin] touch-pan-x"
-            style={{ maxHeight: "calc(100svh - 112px)" }}
-          >
+          <div className="overflow-x-auto overflow-y-auto [scrollbar-width:thin] touch-pan-x flex-1">
             <div style={{ minWidth: `${52 + gridMinWidth}px` }}>
               {/* ── Хедер (sticky top) ── */}
               <div className="flex border-b border-border/40 bg-muted/40 select-none items-center h-[46px] sm:h-[52px] sticky top-0 z-20">
@@ -294,7 +293,7 @@ export function CalendarClient({
         </div>
 
         {/* ──── Сайдбар (только xl+) ──── */}
-        <aside className="hidden xl:flex flex-col gap-4 w-[290px] shrink-0">
+        <aside className="hidden xl:flex flex-col gap-4 w-[290px] shrink-0 h-full overflow-y-auto [scrollbar-width:thin] pr-1 pb-1">
           <MiniCalendar selectedDate={currentUrlDate} />
           <OccupancyCard dates={visibleDates} lessons={lessons} />
           <WeekEarningsCard />

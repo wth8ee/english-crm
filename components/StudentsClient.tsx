@@ -60,6 +60,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
   const [email, setEmail] = useState("");
   const [examType, setExamType] = useState("ЕГЭ");
   const [hourlyRate, setHourlyRate] = useState("1500");
+  const [lessonsPerWeek, setLessonsPerWeek] = useState("1");
 
   const [students, setStudents] = useState(initialStudents);
 
@@ -89,6 +90,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
       setEmail("");
       setExamType("ЕГЭ");
       setHourlyRate("1500");
+      setLessonsPerWeek("1");
     }
   };
 
@@ -99,6 +101,7 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
     setEmail(student.email ?? "");
     setExamType(student.examType);
     setHourlyRate(String(student.hourlyRate));
+    setLessonsPerWeek(String(student.lessonsPerWeek));
     setError(null);
     setIsOpen(true);
   };
@@ -124,8 +127,9 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
             email,
             examType,
             Number(hourlyRate),
+            Number(lessonsPerWeek),
           )
-        : await createStudent(name, email, examType, Number(hourlyRate));
+        : await createStudent(name, email, examType, Number(hourlyRate), Number(lessonsPerWeek));
 
     setIsLoading(false);
 
@@ -258,6 +262,23 @@ export function StudentsClient({ initialStudents }: StudentsClientProps) {
                     className="h-9 text-xs bg-background border-border/40"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="lessonsPerWeek" className="text-xs font-medium">
+                  Уроков в неделю (для прогноза)
+                </Label>
+                <Input
+                  id="lessonsPerWeek"
+                  type="number"
+                  step="0.5"
+                  placeholder="2"
+                  required
+                  value={lessonsPerWeek}
+                  onChange={(e) => setLessonsPerWeek(e.target.value)}
+                  disabled={isLoading}
+                  className="h-9 text-xs bg-background border-border/40"
+                />
               </div>
 
               <DialogFooter className="pt-4">

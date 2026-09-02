@@ -15,13 +15,23 @@ import {
   Download,
   Coins,
   Target,
-  BarChart3,
   CalendarCheck,
+  CalendarDays,
+  CircleDollarSign,
 } from "lucide-react";
-import { TransactionsTable } from "./TransactionsTable";
-import { Lesson } from "@/generated/prisma/client";
+// import { TransactionsTable } from "./TransactionsTable";
+import { Lesson, Student } from "@/generated/prisma/client";
 import { cn, pluralize, shorten } from "@/lib/utils";
-import { getPast6Months } from "@/lib/date";
+
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 interface StudentShare {
   name: string;
@@ -38,6 +48,7 @@ interface FinancesClientProps {
   studentsShares: StudentShare[];
   lastMonthLessons: Lesson[];
   scheduledThisMonth: Lesson[];
+  students: Student[];
 }
 
 export function FinancesClient({
@@ -49,6 +60,7 @@ export function FinancesClient({
   studentsShares,
   lastMonthLessons,
   scheduledThisMonth,
+  students,
 }: FinancesClientProps) {
   const totalIncome = confirmedLessons.reduce(
     (acc, lesson) => acc + lesson.price * (lesson.duration / 60),
@@ -82,7 +94,11 @@ export function FinancesClient({
     (acc, l) => acc + l.price * (l.duration / 60),
     0,
   );
-  const projectedIncome = thisMonthIncome + scheduledIncome;
+  // const projectedIncome = thisMonthIncome + scheduledIncome;
+
+  const predictedMonthlyIncome = students
+    .filter((s) => s.status === "ACTIVE")
+    .reduce((acc, s) => acc + s.hourlyRate * s.lessonsPerWeek * 4, 0);
 
   // Conversion rate: confirmed / (confirmed + completed + scheduled + cancelled)
   const totalNonScheduled = confirmedLessons.length + completedLessons.length;
@@ -92,93 +108,67 @@ export function FinancesClient({
       ? Math.round((totalNonScheduled / totalAllLessons) * 100)
       : 0;
 
-  // Last 4 weeks bar chart data
-  const weeklyData = Array.from({ length: 4 }, (_, i) => {
-    // i=0 is oldest (3 weeks ago), i=3 is most recent (this week)
-    const weekEnd = new Date();
-    weekEnd.setDate(weekEnd.getDate() - i * 7);
-    const weekStart = new Date(weekEnd);
-    weekStart.setDate(weekStart.getDate() - 6);
+  // Last 30 days income
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const pad2d = (n: number) => String(n).padStart(2, '0');
+  const thirtyDaysAgoStr = `${thirtyDaysAgo.getFullYear()}-${pad2d(thirtyDaysAgo.getMonth()+1)}-${pad2d(thirtyDaysAgo.getDate())}`;
 
-    const pad2 = (n: number) => String(n).padStart(2, "0");
-    const startStr = `${weekStart.getFullYear()}-${pad2(weekStart.getMonth() + 1)}-${pad2(weekStart.getDate())}`;
-    const endStr = `${weekEnd.getFullYear()}-${pad2(weekEnd.getMonth() + 1)}-${pad2(weekEnd.getDate())}`;
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const sixtyDaysAgoStr = `${sixtyDaysAgo.getFullYear()}-${pad2d(sixtyDaysAgo.getMonth()+1)}-${pad2d(sixtyDaysAgo.getDate())}`;
 
-    const weekLessons = confirmedLessons.filter(
-      (l) => l.date >= startStr && l.date <= endStr,
-    );
-    const income = weekLessons.reduce(
-      (acc, l) => acc + l.price * (l.duration / 60),
-      0,
-    );
+  const last30Income = confirmedLessons
+    .filter(l => l.date >= thirtyDaysAgoStr)
+    .reduce((acc, l) => acc + l.price * (l.duration / 60), 0);
 
-    // Short label like "28.07"
-    const label = `${pad2(weekStart.getDate())}.${pad2(weekStart.getMonth() + 1)}`;
+  const prev30Income = confirmedLessons
+    .filter(l => l.date >= sixtyDaysAgoStr && l.date < thirtyDaysAgoStr)
+    .reduce((acc, l) => acc + l.price * (l.duration / 60), 0);
 
-    return { label, income };
-  }).reverse(); // oldest first
+  const last30Growth = prev30Income > 0 ? Math.round(((last30Income - prev30Income) / prev30Income) * 100) : null;
 
-  const weeklyBgColors = [
-    "bg-foreground/25",
-    "bg-foreground/45",
-    "bg-foreground/70",
-    "bg-foreground",
-  ];
-  const weeklyHoverColors = [
-    "group-hover:bg-foreground/15",
-    "group-hover:bg-foreground/35",
-    "group-hover:bg-foreground/55",
-    "group-hover:bg-foreground/85",
-  ];
-  const maxWeeklyAmount = Math.max(...weeklyData.map((d) => d.income), 1);
-  const avgWeeklyIncome = Math.round(
-    weeklyData.reduce((s, d) => s + d.income, 0) / 4,
-  );
+  // Unpaid (completed but not yet paid) income
+  const unpaidIncome = completedLessons.reduce((acc, l) => acc + l.price * (l.duration / 60), 0);
 
-  const chartMonths = getPast6Months();
-  const monthlyData = chartMonths.map((m, idx) => {
-    const lessonsInMonth = confirmedLessons.filter((lesson) => {
-      const lessonDate = new Date(lesson.date);
-      return (
-        lessonDate.getMonth() === m.monthIndex &&
-        lessonDate.getFullYear() === m.year
-      );
-    });
+  // Daily cumulative chart: from first confirmed lesson to today
+  const pad2 = (n: number) => String(n).padStart(2, "0");
 
-    const colors = [
-      "bg-foreground/20",
-      "bg-foreground/30",
-      "bg-foreground/40",
-      "bg-foreground/60",
-      "bg-foreground/75",
-      "bg-foreground",
-    ];
+  const dailyData = (() => {
+    if (confirmedLessons.length === 0) return [];
 
-    const hoverColors = [
-      "group-hover:bg-foreground/10",
-      "group-hover:bg-foreground/20",
-      "group-hover:bg-foreground/30",
-      "group-hover:bg-foreground/40",
-      "group-hover:bg-foreground/60",
-      "group-hover:bg-foreground/75",
-    ];
+    // Group income by date string "YYYY-MM-DD"
+    const incomeByDay: Record<string, number> = {};
+    for (const lesson of confirmedLessons) {
+      const earned = lesson.price * (lesson.duration / 60);
+      incomeByDay[lesson.date] = (incomeByDay[lesson.date] ?? 0) + earned;
+    }
 
-    const totalEarned = lessonsInMonth.reduce((sum, lesson) => {
-      const lessonPrice = (lesson.duration / 60) * lesson.price;
-      return sum + lessonPrice;
-    }, 0);
+    // Find date range: from earliest lesson date to today
+    const sortedDates = Object.keys(incomeByDay).sort();
+    const firstDate = new Date(sortedDates[0]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    return {
-      name: m.name,
-      amount: totalEarned,
-      bgClass: colors[idx],
-      hoverClass: hoverColors[idx],
-      tooltipText:
-        totalEarned > 0 ? `${(totalEarned / 1000).toFixed(1)}к` : "0 ₽",
-    };
-  });
+    const result: { date: string; label: string; amount: number; total: number }[] = [];
+    let cumulative = 0;
+    const cursor = new Date(firstDate);
 
-  const maxAmount = Math.max(...monthlyData.map((d) => d.amount), 1);
+    while (cursor <= today) {
+      const key = `${cursor.getFullYear()}-${pad2(cursor.getMonth() + 1)}-${pad2(cursor.getDate())}`;
+      const amount = incomeByDay[key] ?? 0;
+      cumulative += amount;
+      const label = `${pad2(cursor.getDate())}.${pad2(cursor.getMonth() + 1)}`;
+      result.push({ date: key, label, amount, total: cumulative });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return result;
+  })();
+
+  // Adaptive X-axis: show every N-th tick so labels don't overlap
+  const totalDays = dailyData.length;
+  const tickEvery = totalDays <= 14 ? 1 : totalDays <= 60 ? 7 : totalDays <= 180 ? 14 : 30;
 
   const shareColors = [
     "bg-foreground",
@@ -209,7 +199,8 @@ export function FinancesClient({
         </Button>
       </div>
 
-      {/* ── Top KPI cards ── */}
+      {/* ── Block: Top KPI cards ── */}
+      <h2 className="text-sm font-bold mt-8 mb-4 uppercase tracking-wider text-muted-foreground">Общая сводка</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/40 bg-sidebar shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -300,36 +291,36 @@ export function FinancesClient({
         </Card>
       </div>
 
-      {/* ── New metrics row ── */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* Projected income */}
+      {/* ── Block: Forecast & Conversion ── */}
+      <h2 className="text-sm font-bold mt-8 mb-4 uppercase tracking-wider text-muted-foreground">Прогнозы и метрики</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Predicted income */}
         <Card className="border-border/40 bg-sidebar shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
-              Прогноз месяца
+              Расчет ЗП за месяц
             </CardTitle>
             <Target className="h-4 w-4 text-violet-500" />
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
-              {projectedIncome.toLocaleString("ru-RU")} ₽
+              {predictedMonthlyIncome.toLocaleString("ru-RU")} ₽
             </div>
             <p className="text-[10px] text-muted-foreground mb-3">
-              Оплачено + запланированные уроки
+              Примерный прогноз на базе {students.filter(s => s.status === 'ACTIVE').length} активных учеников
             </p>
-            {projectedIncome > 0 && (
+            {predictedMonthlyIncome > 0 && (
               <>
                 <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-violet-500 transition-all duration-500"
                     style={{
-                      width: `${Math.min(Math.round((thisMonthIncome / projectedIncome) * 100), 100)}%`,
+                      width: `${Math.min(Math.round((thisMonthIncome / predictedMonthlyIncome) * 100), 100)}%`,
                     }}
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1.5">
-                  {Math.round((thisMonthIncome / projectedIncome) * 100)}%
-                  уже получено
+                  {Math.round((thisMonthIncome / predictedMonthlyIncome) * 100)}% от ожидаемого дохода получено
                 </p>
               </>
             )}
@@ -361,100 +352,120 @@ export function FinancesClient({
           </CardContent>
         </Card>
 
-        {/* Avg weekly income — bar chart */}
+        {/* Last 30 days income */}
         <Card className="border-border/40 bg-sidebar shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
-              Среднее в неделю
+              Доход за 30 дней
             </CardTitle>
-            <BarChart3 className="h-4 w-4 text-foreground/60" />
+            <CalendarDays className="h-4 w-4 text-sky-500" />
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
-              {avgWeeklyIncome.toLocaleString("ru-RU")} ₽
+              {last30Income.toLocaleString('ru-RU')} ₽
             </div>
-            <p className="text-[10px] text-muted-foreground mb-4">
-              Средний доход за последние 4 недели
+            <p className="text-[10px] text-muted-foreground">
+              {last30Growth !== null ? (
+                <span className={cn('font-medium', last30Growth >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                  {last30Growth >= 0 ? '+' : ''}{last30Growth}%
+                </span>
+              ) : <span>Первые данные</span>}{' '}
+              {last30Growth !== null && 'к предыдущим 30 дням'}
             </p>
-            {/* 4-week bar chart */}
-            <div className="flex items-end justify-between gap-2 h-16 pt-1">
-              {weeklyData.map((week, idx) => {
-                const heightPct = Math.max(
-                  Math.floor((week.income / maxWeeklyAmount) * 100),
-                  4,
-                );
-                return (
-                  <div
-                    key={idx}
-                    className="flex flex-col items-center gap-1.5 flex-1 group relative"
-                  >
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-popover border border-border/40 rounded px-1 py-0.5 text-[8px] font-bold shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                      {week.income > 0
-                        ? week.income >= 1000
-                          ? `${(week.income / 1000).toFixed(1)}к`
-                          : `${Math.round(week.income)} ₽`
-                        : "0 ₽"}
-                    </div>
-                    <div
-                      style={{ height: `calc(4rem * ${heightPct} / 100)` }}
-                      className={cn(
-                        "w-full rounded-t-sm transition-colors",
-                        weeklyBgColors[idx],
-                        weeklyHoverColors[idx],
-                      )}
-                    />
-                    <span className="text-[9px] text-muted-foreground">
-                      {week.label}
-                    </span>
-                  </div>
-                );
-              })}
+          </CardContent>
+        </Card>
+
+        {/* Unpaid (completed) lessons */}
+        <Card className="border-border/40 bg-sidebar shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
+              Ожидает оплаты
+            </CardTitle>
+            <CircleDollarSign className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">
+              {unpaidIncome.toLocaleString('ru-RU')} ₽
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              {completedLessons.length} {completedLessons.length === 1 ? 'урок проведён' : completedLessons.length >= 2 && completedLessons.length <= 4 ? 'урока проведено' : 'уроков проведено'}, но не оплачен{completedLessons.length === 1 ? '' : 'о'}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Charts row ── */}
+      {/* ── Block: Charts ── */}
+      <h2 className="text-sm font-bold mt-8 mb-4 uppercase tracking-wider text-muted-foreground">Аналитика</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 border-border/40 bg-sidebar shadow-sm">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">
-              Динамика доходов
+              Динамика роста дохода
             </CardTitle>
             <CardDescription className="text-xs">
-              Ежемесячный заработок за текущий год
+              Накопительный доход по дням проведённых оплаченных уроков
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-52 flex items-end justify-between gap-2 pt-4 px-2">
-            {monthlyData.map((data, idx) => {
-              const heightPercent = Math.max(
-                Math.floor((data.amount / maxAmount) * 100),
-                4,
-              );
-              const heightClass = `calc(12rem*${heightPercent}/100)`;
-
-              return (
-                <div
-                  key={idx}
-                  className="flex flex-col items-center gap-2 flex-1 group relative"
-                >
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-popover border border-border/40 rounded px-1 py-0.5 text-[8px] font-bold shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {(data.amount / 1000).toFixed(1)}к
-                  </div>
-                  <div
-                    style={{ height: heightClass }}
-                    className={cn(
-                      `w-full rounded-t-sm transition-colors`,
-                      data.bgClass,
-                      data.hoverClass,
-                    )}
+          <CardContent className="h-52 pt-4 px-2">
+            {dailyData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <p className="text-sm font-semibold text-foreground">📊 Нет данных</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Отметьте первые уроки как оплаченные</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(128,128,128,0.15)" />
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.3 }}
+                    dy={8}
+                    interval={tickEvery - 1}
                   />
-                  <span className="text-[9px] text-muted-foreground">
-                    {data.name}
-                  </span>
-                </div>
-              );
-            })}
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.3 }}
+                    tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}к` : `${val}`}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: 'rgba(128,128,128,0.4)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-popover border border-border/50 text-foreground text-xs p-2 rounded-lg shadow-lg">
+                            <p className="font-semibold mb-1">{d.date}</p>
+                            <p className="text-emerald-500 font-medium">Суммарно: {d.total.toLocaleString("ru-RU")} ₽</p>
+                            {d.amount > 0 && (
+                              <p className="text-muted-foreground text-[10px] mt-0.5">За день: {d.amount.toLocaleString("ru-RU")} ₽</p>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fill="url(#incomeGradient)"
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 

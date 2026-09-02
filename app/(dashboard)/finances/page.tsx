@@ -45,6 +45,7 @@ export default async function Finances() {
       completedLessons={completedLessons}
       lastMonthLessons={lastMonthLessons}
       scheduledThisMonth={scheduledThisMonth}
+      students={students}
     />
   );
 }

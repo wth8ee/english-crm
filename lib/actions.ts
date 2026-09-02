@@ -12,6 +12,7 @@ export async function createStudent(
   email: string,
   examType: string,
   hourlyRate: number,
+  lessonsPerWeek: number,
 ) {
   try {
     const session = await auth.api.getSession({
@@ -36,6 +37,7 @@ export async function createStudent(
         email: email,
         examType: examType,
         hourlyRate: hourlyRate,
+        lessonsPerWeek: lessonsPerWeek,
         status: "ACTIVE",
         userId: session.user.id,
       },
@@ -55,6 +57,7 @@ export async function updateStudent(
   email: string,
   examType: string,
   hourlyRate: number,
+  lessonsPerWeek: number,
 ) {
   try {
     const session = await auth.api.getSession({
@@ -83,6 +86,7 @@ export async function updateStudent(
         email: email,
         examType: examType,
         hourlyRate: hourlyRate,
+        lessonsPerWeek: lessonsPerWeek,
       },
     });
 
